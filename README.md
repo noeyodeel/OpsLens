@@ -45,3 +45,32 @@ OpsLens assists developers by collecting context, suggesting likely causes, and 
 ## Documentation
 
 - [MVP Design](docs/mvp-design.md)
+
+## Local Development
+
+Start PostgreSQL:
+
+```bash
+docker compose up -d
+```
+
+Run the backend:
+
+```bash
+cd backend
+./mvnw spring-boot:run
+```
+
+Run the frontend:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Health check:
+
+```bash
+curl http://localhost:8080/api/health
+```

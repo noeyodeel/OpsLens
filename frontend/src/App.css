@@ -1,0 +1,173 @@
+.app-shell {
+  min-height: 100vh;
+  padding: 40px;
+  background: #f6f7f9;
+  color: #1f2933;
+}
+
+.top-bar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 28px;
+}
+
+.eyebrow {
+  margin: 0 0 8px;
+  color: #256f6c;
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+h1,
+h2,
+p {
+  margin: 0;
+}
+
+h1 {
+  font-size: 34px;
+  font-weight: 760;
+}
+
+.status-pill,
+.row-status,
+.severity {
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.status-pill {
+  padding: 9px 12px;
+  background: #e4f4ef;
+  color: #17665e;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.summary-grid article,
+.incident-panel {
+  border: 1px solid #d8dde3;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.summary-grid article {
+  padding: 20px;
+}
+
+.summary-grid span {
+  display: block;
+  margin-bottom: 10px;
+  color: #617080;
+  font-size: 14px;
+}
+
+.summary-grid strong {
+  font-size: 30px;
+}
+
+.incident-panel {
+  padding: 22px;
+}
+
+.panel-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.panel-heading h2 {
+  font-size: 20px;
+}
+
+button {
+  min-height: 38px;
+  border: 0;
+  border-radius: 6px;
+  padding: 0 14px;
+  background: #1f5f68;
+  color: #ffffff;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.incident-list {
+  display: grid;
+  gap: 10px;
+}
+
+.incident-row {
+  display: grid;
+  grid-template-columns: 104px minmax(0, 1fr) 140px;
+  align-items: center;
+  gap: 14px;
+  padding: 14px;
+  border: 1px solid #e4e8ed;
+  border-radius: 8px;
+}
+
+.incident-row p {
+  margin-top: 5px;
+  color: #6b7785;
+  font-size: 14px;
+}
+
+.severity {
+  display: inline-flex;
+  width: 92px;
+  height: 30px;
+  align-items: center;
+  justify-content: center;
+}
+
+.severity.critical {
+  background: #ffe7e0;
+  color: #a73518;
+}
+
+.severity.warning {
+  background: #fff3cf;
+  color: #806012;
+}
+
+.row-status {
+  color: #50606f;
+  text-align: right;
+}
+
+@media (max-width: 760px) {
+  .app-shell {
+    padding: 24px 16px;
+  }
+
+  .top-bar,
+  .panel-heading {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  h1 {
+    font-size: 27px;
+  }
+
+  .summary-grid,
+  .incident-row {
+    grid-template-columns: 1fr;
+  }
+
+  .row-status {
+    text-align: left;
+  }
+}

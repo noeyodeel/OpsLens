@@ -1,0 +1,21 @@
+spring:
+  application:
+    name: OpsLens
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/opslens}
+    username: ${SPRING_DATASOURCE_USERNAME:opslens}
+    password: ${SPRING_DATASOURCE_PASSWORD:opslens}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        format_sql: true
+  flyway:
+    enabled: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
