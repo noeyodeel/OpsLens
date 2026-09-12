@@ -46,6 +46,13 @@ OpsLens assists developers by collecting context, suggesting likely causes, and 
 
 - [MVP Design](docs/mvp-design.md)
 
+## Backend Modules
+
+- `domain.datasource`: source systems, synthetic operational data, ingestion logs, and repositories
+- `application.system`: database status checks
+- `api.health`: backend health endpoint
+- `api.system`: database and migration status endpoint
+
 ## Local Development
 
 Start PostgreSQL:

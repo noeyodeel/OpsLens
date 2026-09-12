@@ -80,6 +80,16 @@ Initial tables:
 
 AI outputs such as suspected causes and additional checks can be stored as JSONB because the structure may evolve during MVP experimentation.
 
+Operational data tables are implemented first because anomaly detection needs stable relational targets before incident logic is added.
+
+Implemented operational tables:
+
+- `source_system`: synthetic external source systems.
+- `customers`: customer master-like data with nullable phone fields for NULL spike scenarios.
+- `orders`: order records used for count drop, count spike, and source missing scenarios.
+- `payments`: payment records used for duplicate payment and order-payment mismatch scenarios.
+- `data_ingestion_log`: batch/source ingestion status used to explain missing or partial data.
+
 ## 4. Anomaly Detection
 
 MVP detection is rule-based.
@@ -338,7 +348,7 @@ Small independently testable tasks:
 
 1. Create Spring Boot, React, and Docker Compose skeleton.
 2. Add PostgreSQL connection, Flyway migration, and database status check.
-3. Create operational data tables and JPA entities.
+3. Create operational data tables, JPA entities, and repository tests.
 4. Create incident tables and JPA entities.
 5. Implement synthetic normal data generation.
 6. Implement scenario injection.
