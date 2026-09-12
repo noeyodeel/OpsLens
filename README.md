@@ -50,9 +50,11 @@ OpsLens assists developers by collecting context, suggesting likely causes, and 
 
 - `domain.datasource`: source systems, synthetic operational data, ingestion logs, and repositories
 - `domain.incident`: detection rules, incidents, metric snapshots, status lifecycle, and repositories
+- `application.testdata`: reproducible synthetic normal data generation
 - `application.system`: database status checks
 - `api.health`: backend health endpoint
 - `api.system`: database and migration status endpoint
+- `api.testdata`: synthetic data generation endpoint
 
 ## Local Development
 
@@ -90,3 +92,11 @@ curl http://localhost:8080/api/system/database
 ```
 
 The database check reads the `app_metadata` table created by Flyway. Start Docker Desktop before running `docker compose up -d`.
+
+Generate normal synthetic data:
+
+```bash
+curl -X POST http://localhost:8080/api/test-data/generate \
+  -H "Content-Type: application/json" \
+  -d '{"days":8,"sourceCount":3,"customersPerSource":20,"ordersPerSourcePerDay":40,"seed":20260913,"baseDate":"2026-09-13"}'
+```

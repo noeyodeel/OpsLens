@@ -305,6 +305,24 @@ The generator should use a fixed random seed so scenarios are reproducible.
 
 Normal data is created first. Then scenario injection modifies or inserts abnormal data patterns.
 
+Implemented normal generation API:
+
+```text
+POST /api/test-data/generate
+```
+
+Default generation profile:
+
+- 8 days of data.
+- 3 source systems.
+- 20 customers per source system.
+- 40 orders per source system per day.
+- 1 successful payment per order.
+- 1 successful `orders` ingestion log per source system per day.
+- Fixed default seed: `20260913`.
+
+The API resets existing operational data by default so repeated runs produce a clean normal baseline.
+
 ## 12. Incident Scenarios
 
 Initial scenarios:
@@ -356,7 +374,7 @@ Small independently testable tasks:
 2. Add PostgreSQL connection, Flyway migration, and database status check.
 3. Create operational data tables, JPA entities, and repository tests.
 4. Create incident tables, JPA entities, status lifecycle methods, and repository tests.
-5. Implement synthetic normal data generation.
+5. Implement seed-based synthetic normal data generation API.
 6. Implement scenario injection.
 7. Implement count drop detection.
 8. Implement NULL spike detection.

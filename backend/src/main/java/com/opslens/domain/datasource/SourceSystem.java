@@ -33,10 +33,14 @@ public class SourceSystem {
     }
 
     public SourceSystem(String code, String name) {
+        this(code, name, Instant.now());
+    }
+
+    public SourceSystem(String code, String name, Instant createdAt) {
         this.code = code;
         this.name = name;
         this.active = true;
-        this.createdAt = Instant.now();
+        this.createdAt = createdAt;
     }
 
     public Long getId() {
