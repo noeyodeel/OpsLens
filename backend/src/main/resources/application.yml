@@ -5,7 +5,9 @@ spring:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/opslens}
     username: ${SPRING_DATASOURCE_USERNAME:opslens}
     password: ${SPRING_DATASOURCE_PASSWORD:opslens}
+    driver-class-name: org.postgresql.Driver
   jpa:
+    open-in-view: false
     hibernate:
       ddl-auto: validate
     properties:
@@ -13,6 +15,8 @@ spring:
         format_sql: true
   flyway:
     enabled: true
+    locations: classpath:db/migration
+    validate-migration-naming: true
 
 management:
   endpoints:

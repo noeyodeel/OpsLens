@@ -337,7 +337,7 @@ Average AI-assisted analysis time: 8 minutes
 Small independently testable tasks:
 
 1. Create Spring Boot, React, and Docker Compose skeleton.
-2. Add PostgreSQL connection and Flyway migration.
+2. Add PostgreSQL connection, Flyway migration, and database status check.
 3. Create operational data tables and JPA entities.
 4. Create incident tables and JPA entities.
 5. Implement synthetic normal data generation.

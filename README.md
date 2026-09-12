@@ -74,3 +74,11 @@ Health check:
 ```bash
 curl http://localhost:8080/api/health
 ```
+
+Database and migration check:
+
+```bash
+curl http://localhost:8080/api/system/database
+```
+
+The database check reads the `app_metadata` table created by Flyway. Start Docker Desktop before running `docker compose up -d`.
