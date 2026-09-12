@@ -87,4 +87,8 @@ public class Payment {
     public Instant getPaidAt() {
         return paidAt;
     }
+
+    public void replacePaymentId(String paymentId) {
+        this.paymentId = paymentId;
+    }
 }

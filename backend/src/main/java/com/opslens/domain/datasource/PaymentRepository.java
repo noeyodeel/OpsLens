@@ -10,4 +10,8 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
     List<Payment> findByPaymentId(String paymentId);
 
     long countByPaidAtBetween(Instant from, Instant to);
+
+    List<Payment> findByOrderIn(List<Order> orders);
+
+    List<Payment> findBySourceSystemAndPaidAtBetween(SourceSystem sourceSystem, Instant from, Instant to);
 }

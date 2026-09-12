@@ -76,4 +76,8 @@ public class Customer {
     public Instant getCreatedAt() {
         return createdAt;
     }
+
+    public void clearPhone() {
+        this.customerPhone = null;
+    }
 }

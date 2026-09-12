@@ -50,6 +50,8 @@ OpsLens assists developers by collecting context, suggesting likely causes, and 
 
 - `domain.datasource`: source systems, synthetic operational data, ingestion logs, and repositories
 - `domain.incident`: detection rules, incidents, metric snapshots, status lifecycle, and repositories
+- `domain.scenario`: injected incident scenarios and expected root causes
+- `application.scenario`: synthetic anomaly scenario injection
 - `application.testdata`: reproducible synthetic normal data generation
 - `application.system`: database status checks
 - `api.health`: backend health endpoint
@@ -99,4 +101,18 @@ Generate normal synthetic data:
 curl -X POST http://localhost:8080/api/test-data/generate \
   -H "Content-Type: application/json" \
   -d '{"days":8,"sourceCount":3,"customersPerSource":20,"ordersPerSourcePerDay":40,"seed":20260913,"baseDate":"2026-09-13"}'
+```
+
+List supported scenarios:
+
+```bash
+curl http://localhost:8080/api/scenarios
+```
+
+Inject a scenario:
+
+```bash
+curl -X POST http://localhost:8080/api/scenarios/inject \
+  -H "Content-Type: application/json" \
+  -d '{"scenarioType":"ORDER_VOLUME_DROP","targetSourceCode":"SRC_02","targetDate":"2026-09-13"}'
 ```

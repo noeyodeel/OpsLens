@@ -328,11 +328,17 @@ The API resets existing operational data by default so repeated runs produce a c
 Initial scenarios:
 
 1. 80% order volume drop for one source system.
-2. Missing order data for a specific date.
-3. Sudden increase in `customer_phone` NULL ratio.
-4. Duplicate `payment_id` values.
+2. Sudden increase in `customer_phone` NULL ratio.
+3. Duplicate `payment_id` values.
+4. Missing order data for a specific date.
 5. Batch failure increase causing partial ingestion.
 6. Orders exist but matching payment data is missing.
+
+Implemented MVP scenarios:
+
+- `ORDER_VOLUME_DROP`: removes 80% of orders and related payments for a source/date.
+- `CUSTOMER_PHONE_NULL_SPIKE`: clears phone numbers for 80% of customers in a source system.
+- `DUPLICATE_PAYMENT_ID`: rewrites multiple payment rows to share the same `payment_id`.
 
 Each scenario stores:
 
@@ -342,6 +348,13 @@ Each scenario stores:
 - Expected root cause
 - Expected related tables
 - Expected verification pattern
+
+Implemented scenario APIs:
+
+```text
+GET  /api/scenarios
+POST /api/scenarios/inject
+```
 
 ## 13. MVP Evaluation
 
@@ -375,7 +388,7 @@ Small independently testable tasks:
 3. Create operational data tables, JPA entities, and repository tests.
 4. Create incident tables, JPA entities, status lifecycle methods, and repository tests.
 5. Implement seed-based synthetic normal data generation API.
-6. Implement scenario injection.
+6. Implement scenario table, supported scenario API, and anomaly injection service.
 7. Implement count drop detection.
 8. Implement NULL spike detection.
 9. Implement duplicate detection.

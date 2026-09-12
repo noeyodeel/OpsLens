@@ -46,7 +46,7 @@ function App() {
         </article>
         <article>
           <span>Scenario coverage</span>
-          <strong>6</strong>
+          <strong>3</strong>
         </article>
       </section>
 
