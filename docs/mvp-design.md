@@ -90,6 +90,12 @@ Implemented operational tables:
 - `payments`: payment records used for duplicate payment and order-payment mismatch scenarios.
 - `data_ingestion_log`: batch/source ingestion status used to explain missing or partial data.
 
+Implemented incident tables:
+
+- `detection_rule`: rule definitions used by anomaly detectors.
+- `incident`: detected anomaly events with severity, status, target table, and anomaly type.
+- `incident_metric_snapshot`: baseline/current metric values captured when an incident is created.
+
 ## 4. Anomaly Detection
 
 MVP detection is rule-based.
@@ -349,7 +355,7 @@ Small independently testable tasks:
 1. Create Spring Boot, React, and Docker Compose skeleton.
 2. Add PostgreSQL connection, Flyway migration, and database status check.
 3. Create operational data tables, JPA entities, and repository tests.
-4. Create incident tables and JPA entities.
+4. Create incident tables, JPA entities, status lifecycle methods, and repository tests.
 5. Implement synthetic normal data generation.
 6. Implement scenario injection.
 7. Implement count drop detection.
