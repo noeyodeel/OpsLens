@@ -117,6 +117,9 @@ Implemented detector:
 - A `COUNT_DROP` incident is created when the current count is below 50% of the baseline average.
 - The detector records baseline count, current count, and change rate as an `incident_metric_snapshot`.
 - Duplicate incident creation is prevented for the same target table, anomaly type, external institution, and detection window.
+- Institution-level required field NULL spike detection checks the current NULL ratio of `record_subjects.required_field_value`.
+- A `NULL_SPIKE` incident is created when the current NULL ratio is greater than 20%.
+- In the current synthetic data profile, the baseline required field NULL ratio is expected to be 0%, so the detector records the percentage-point increase as the change rate.
 
 ## 5. AI Agent Input and Output
 
@@ -369,7 +372,7 @@ Implemented detection API:
 POST /api/incidents/detect
 ```
 
-The current MVP implementation detects `COUNT_DROP` incidents for the `treatment_records` table.
+The current MVP implementation detects `COUNT_DROP` incidents for the `treatment_records` table and `NULL_SPIKE` incidents for `record_subjects.required_field_value`.
 
 ## 13. MVP Evaluation
 
@@ -405,7 +408,7 @@ Small independently testable tasks:
 5. Implement seed-based synthetic normal data generation API.
 6. Implement scenario table, supported scenario API, and anomaly injection service.
 7. Implement volume drop detection.
-8. Implement NULL spike detection.
+8. Implement required field NULL spike detection.
 9. Implement duplicate detection.
 10. Implement institution missing detection.
 11. Implement incident list API.

@@ -130,3 +130,8 @@ curl -X POST http://localhost:8080/api/incidents/detect \
   -H "Content-Type: application/json" \
   -d '{"targetDate":"2026-09-13"}'
 ```
+
+The detection endpoint currently runs:
+
+- `VOLUME_DROP`: institution-level treatment record volume drop detection.
+- `REQUIRED_FIELD_NULL_SPIKE`: institution-level required field NULL ratio detection.

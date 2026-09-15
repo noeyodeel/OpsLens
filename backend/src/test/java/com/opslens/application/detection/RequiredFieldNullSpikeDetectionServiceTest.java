@@ -11,8 +11,8 @@ import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.TestPropertySource;
 
-import com.opslens.application.detection.VolumeDropDetectionService.VolumeDropDetectionCommand;
-import com.opslens.application.detection.VolumeDropDetectionService.VolumeDropDetectionResult;
+import com.opslens.application.detection.RequiredFieldNullSpikeDetectionService.RequiredFieldNullSpikeDetectionCommand;
+import com.opslens.application.detection.RequiredFieldNullSpikeDetectionService.RequiredFieldNullSpikeDetectionResult;
 import com.opslens.application.scenario.ScenarioInjectionService;
 import com.opslens.application.scenario.ScenarioInjectionService.ScenarioInjectionCommand;
 import com.opslens.application.testdata.TestDataGenerationService;
@@ -21,6 +21,7 @@ import com.opslens.domain.incident.AnomalyType;
 import com.opslens.domain.incident.Incident;
 import com.opslens.domain.incident.IncidentMetricSnapshotRepository;
 import com.opslens.domain.incident.IncidentRepository;
+import com.opslens.domain.incident.IncidentSeverity;
 import com.opslens.domain.incident.IncidentStatus;
 import com.opslens.domain.scenario.ScenarioType;
 
@@ -28,13 +29,13 @@ import com.opslens.domain.scenario.ScenarioType;
 @Import({
     TestDataGenerationService.class,
     ScenarioInjectionService.class,
-    VolumeDropDetectionService.class
+    RequiredFieldNullSpikeDetectionService.class
 })
 @TestPropertySource(properties = {
     "spring.flyway.enabled=false",
     "spring.jpa.hibernate.ddl-auto=create-drop"
 })
-class VolumeDropDetectionServiceTest {
+class RequiredFieldNullSpikeDetectionServiceTest {
 
     private static final LocalDate TARGET_DATE = LocalDate.of(2026, 9, 13);
 
@@ -45,7 +46,7 @@ class VolumeDropDetectionServiceTest {
     private ScenarioInjectionService scenarioInjectionService;
 
     @Autowired
-    private VolumeDropDetectionService volumeDropDetectionService;
+    private RequiredFieldNullSpikeDetectionService requiredFieldNullSpikeDetectionService;
 
     @Autowired
     private IncidentRepository incidentRepository;
@@ -67,30 +68,33 @@ class VolumeDropDetectionServiceTest {
     }
 
     @Test
-    void createsIncidentWhenInstitutionRecordVolumeDropsBelowThreshold() {
+    void createsIncidentWhenRequiredFieldNullRatioExceedsThreshold() {
         scenarioInjectionService.inject(new ScenarioInjectionCommand(
-            ScenarioType.TREATMENT_RECORD_VOLUME_DROP,
+            ScenarioType.REQUIRED_FIELD_NULL_SPIKE,
             "INST_02",
             TARGET_DATE
         ));
 
-        var results = volumeDropDetectionService.detect(new VolumeDropDetectionCommand(TARGET_DATE));
+        var results = requiredFieldNullSpikeDetectionService.detect(new RequiredFieldNullSpikeDetectionCommand(TARGET_DATE));
 
         assertThat(results).hasSize(3);
         assertThat(results)
-            .filteredOn(VolumeDropDetectionResult::incidentCreated)
+            .filteredOn(RequiredFieldNullSpikeDetectionResult::incidentCreated)
             .singleElement()
             .satisfies(result -> {
                 assertThat(result.targetInstitutionCode()).isEqualTo("INST_02");
-                assertThat(result.baselineAverage()).isEqualByComparingTo("40.0000");
-                assertThat(result.currentCount()).isEqualByComparingTo("8.0000");
-                assertThat(result.changeRate()).isEqualByComparingTo("-80.0000");
-                assertThat(result.incidentNo()).isEqualTo("INC-20260913-VOLUME-DROP-INST_02");
+                assertThat(result.baselineNullRatio()).isEqualByComparingTo("0.0000");
+                assertThat(result.currentNullRatio()).isEqualByComparingTo("80.0000");
+                assertThat(result.changeRate()).isEqualByComparingTo("80.0000");
+                assertThat(result.totalCount()).isEqualTo(10);
+                assertThat(result.nullCount()).isEqualTo(8);
+                assertThat(result.incidentNo()).isEqualTo("INC-20260913-NULL-SPIKE-INST_02");
             });
 
-        Incident incident = incidentRepository.findByIncidentNo("INC-20260913-VOLUME-DROP-INST_02").orElseThrow();
+        Incident incident = incidentRepository.findByIncidentNo("INC-20260913-NULL-SPIKE-INST_02").orElseThrow();
         assertThat(incident.getStatus()).isEqualTo(IncidentStatus.DETECTED);
-        assertThat(incident.getAnomalyType()).isEqualTo(AnomalyType.COUNT_DROP);
+        assertThat(incident.getSeverity()).isEqualTo(IncidentSeverity.WARNING);
+        assertThat(incident.getAnomalyType()).isEqualTo(AnomalyType.NULL_SPIKE);
         assertThat(incident.getTargetInstitutionCode()).isEqualTo("INST_02");
         assertThat(metricSnapshotRepository.findByIncidentOrderByMeasuredAtAsc(incident)).hasSize(1);
     }
@@ -98,25 +102,25 @@ class VolumeDropDetectionServiceTest {
     @Test
     void doesNotCreateDuplicateIncidentForSameInstitutionAndDate() {
         scenarioInjectionService.inject(new ScenarioInjectionCommand(
-            ScenarioType.TREATMENT_RECORD_VOLUME_DROP,
+            ScenarioType.REQUIRED_FIELD_NULL_SPIKE,
             "INST_02",
             TARGET_DATE
         ));
 
-        volumeDropDetectionService.detect(new VolumeDropDetectionCommand(TARGET_DATE));
-        volumeDropDetectionService.detect(new VolumeDropDetectionCommand(TARGET_DATE));
+        requiredFieldNullSpikeDetectionService.detect(new RequiredFieldNullSpikeDetectionCommand(TARGET_DATE));
+        requiredFieldNullSpikeDetectionService.detect(new RequiredFieldNullSpikeDetectionCommand(TARGET_DATE));
 
         assertThat(incidentRepository.count()).isEqualTo(1);
-        Incident incident = incidentRepository.findByIncidentNo("INC-20260913-VOLUME-DROP-INST_02").orElseThrow();
+        Incident incident = incidentRepository.findByIncidentNo("INC-20260913-NULL-SPIKE-INST_02").orElseThrow();
         assertThat(metricSnapshotRepository.findByIncidentOrderByMeasuredAtAsc(incident)).hasSize(1);
     }
 
     @Test
     void doesNotCreateIncidentForNormalData() {
-        var results = volumeDropDetectionService.detect(new VolumeDropDetectionCommand(TARGET_DATE));
+        var results = requiredFieldNullSpikeDetectionService.detect(new RequiredFieldNullSpikeDetectionCommand(TARGET_DATE));
 
         assertThat(results).hasSize(3);
-        assertThat(results).noneMatch(VolumeDropDetectionResult::incidentCreated);
+        assertThat(results).noneMatch(RequiredFieldNullSpikeDetectionResult::incidentCreated);
         assertThat(incidentRepository.count()).isZero();
     }
 }

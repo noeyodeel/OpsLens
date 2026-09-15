@@ -10,4 +10,8 @@ public interface RecordSubjectRepository extends JpaRepository<RecordSubject, Lo
     Optional<RecordSubject> findBySubjectNo(String subjectNo);
 
     List<RecordSubject> findByExternalInstitution(ExternalInstitution externalInstitution);
+
+    long countByExternalInstitution(ExternalInstitution externalInstitution);
+
+    long countByExternalInstitutionAndRequiredFieldValueIsNull(ExternalInstitution externalInstitution);
 }
