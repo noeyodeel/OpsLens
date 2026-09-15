@@ -93,7 +93,7 @@ Implemented operational tables:
 Implemented incident tables:
 
 - `detection_rule`: rule definitions used by anomaly detectors.
-- `incident`: detected anomaly events with severity, status, target table, and anomaly type.
+- `incident`: detected anomaly events with severity, status, target table, target source, and anomaly type.
 - `incident_metric_snapshot`: baseline/current metric values captured when an incident is created.
 
 ## 4. Anomaly Detection
@@ -110,6 +110,13 @@ Initial rules:
 - Processing failure spike: failed count ratio exceeds 10%.
 
 Rule-based detection is explainable, reproducible, and easier to validate than a statistical or ML-based approach for the first MVP.
+
+Implemented detector:
+
+- Source-level order count drop detection compares each active source system's target-day order count with the previous 7-day average.
+- A `COUNT_DROP` incident is created when the current count is below 50% of the baseline average.
+- The detector records baseline count, current count, and change rate as an `incident_metric_snapshot`.
+- Duplicate incident creation is prevented for the same target table, anomaly type, source system, and detection window.
 
 ## 5. AI Agent Input and Output
 
@@ -222,7 +229,7 @@ GET    /api/incidents/{id}/analysis
 GET    /api/incidents/{id}/reports?type=DEVELOPER
 GET    /api/incidents/{id}/verification-sql
 GET    /api/scenarios
-POST   /api/scenarios/{id}/inject
+POST   /api/scenarios/inject
 POST   /api/test-data/generate
 GET    /api/evaluations
 POST   /api/evaluations/incidents/{id}
@@ -355,6 +362,14 @@ Implemented scenario APIs:
 GET  /api/scenarios
 POST /api/scenarios/inject
 ```
+
+Implemented detection API:
+
+```text
+POST /api/incidents/detect
+```
+
+The current MVP implementation detects `COUNT_DROP` incidents for the `orders` table.
 
 ## 13. MVP Evaluation
 

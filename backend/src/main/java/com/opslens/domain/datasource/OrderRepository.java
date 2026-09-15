@@ -12,5 +12,7 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     long countByOrderedAtBetween(Instant from, Instant to);
 
+    long countBySourceSystemAndOrderedAtBetween(SourceSystem sourceSystem, Instant from, Instant to);
+
     List<Order> findBySourceSystemAndOrderedAtBetween(SourceSystem sourceSystem, Instant from, Instant to);
 }
