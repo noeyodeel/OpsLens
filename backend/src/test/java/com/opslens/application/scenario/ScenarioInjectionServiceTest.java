@@ -16,11 +16,11 @@ import com.opslens.application.scenario.ScenarioInjectionService.ScenarioInjecti
 import com.opslens.application.scenario.ScenarioInjectionService.ScenarioInjectionResult;
 import com.opslens.application.testdata.TestDataGenerationService;
 import com.opslens.application.testdata.TestDataGenerationService.TestDataGenerationCommand;
-import com.opslens.domain.datasource.CustomerRepository;
-import com.opslens.domain.datasource.OrderRepository;
-import com.opslens.domain.datasource.PaymentRepository;
-import com.opslens.domain.datasource.SourceSystem;
-import com.opslens.domain.datasource.SourceSystemRepository;
+import com.opslens.domain.datasource.RecordSubjectRepository;
+import com.opslens.domain.datasource.TreatmentRecordRepository;
+import com.opslens.domain.datasource.VerificationRecordRepository;
+import com.opslens.domain.datasource.ExternalInstitution;
+import com.opslens.domain.datasource.ExternalInstitutionRepository;
 import com.opslens.domain.incident.AnomalyType;
 import com.opslens.domain.scenario.ScenarioRepository;
 import com.opslens.domain.scenario.ScenarioType;
@@ -42,21 +42,21 @@ class ScenarioInjectionServiceTest {
     private ScenarioInjectionService scenarioInjectionService;
 
     @Autowired
-    private SourceSystemRepository sourceSystemRepository;
+    private ExternalInstitutionRepository externalInstitutionRepository;
 
     @Autowired
-    private CustomerRepository customerRepository;
+    private RecordSubjectRepository recordSubjectRepository;
 
     @Autowired
-    private OrderRepository orderRepository;
+    private TreatmentRecordRepository treatmentRecordRepository;
 
     @Autowired
-    private PaymentRepository paymentRepository;
+    private VerificationRecordRepository verificationRecordRepository;
 
     @Autowired
     private ScenarioRepository scenarioRepository;
 
-    private SourceSystem source;
+    private ExternalInstitution institution;
 
     @BeforeEach
     void setUp() {
@@ -69,40 +69,40 @@ class ScenarioInjectionServiceTest {
             BASE_DATE,
             true
         ));
-        source = sourceSystemRepository.findByCode("SRC_02").orElseThrow();
+        institution = externalInstitutionRepository.findByCode("INST_02").orElseThrow();
     }
 
     @Test
-    void injectsOrderVolumeDropScenario() {
-        assertThat(ordersForTargetDate()).hasSize(10);
+    void injectsTreatmentRecordVolumeDropScenario() {
+        assertThat(treatmentRecordsForTargetDate()).hasSize(10);
 
         ScenarioInjectionResult result = scenarioInjectionService.inject(new ScenarioInjectionCommand(
-            ScenarioType.ORDER_VOLUME_DROP,
-            "SRC_02",
+            ScenarioType.TREATMENT_RECORD_VOLUME_DROP,
+            "INST_02",
             BASE_DATE
         ));
 
-        assertThat(result.scenarioType()).isEqualTo(ScenarioType.ORDER_VOLUME_DROP);
+        assertThat(result.scenarioType()).isEqualTo(ScenarioType.TREATMENT_RECORD_VOLUME_DROP);
         assertThat(result.expectedIncidentType()).isEqualTo(AnomalyType.COUNT_DROP);
         assertThat(result.affectedRows()).isEqualTo(8);
-        assertThat(ordersForTargetDate()).hasSize(2);
-        assertThat(paymentsForTargetDate()).hasSize(2);
+        assertThat(treatmentRecordsForTargetDate()).hasSize(2);
+        assertThat(verificationRecordsForTargetDate()).hasSize(2);
         assertThat(scenarioRepository.count()).isEqualTo(1);
     }
 
     @Test
-    void injectsCustomerPhoneNullSpikeScenario() {
-        assertThat(customerRepository.findBySourceSystem(source))
-            .allMatch(customer -> customer.getCustomerPhone() != null);
+    void injectsRequiredFieldNullSpikeScenario() {
+        assertThat(recordSubjectRepository.findByExternalInstitution(institution))
+            .allMatch(recordSubject -> recordSubject.getRequiredFieldValue() != null);
 
         ScenarioInjectionResult result = scenarioInjectionService.inject(new ScenarioInjectionCommand(
-            ScenarioType.CUSTOMER_PHONE_NULL_SPIKE,
-            "SRC_02",
+            ScenarioType.REQUIRED_FIELD_NULL_SPIKE,
+            "INST_02",
             BASE_DATE
         ));
 
-        long nullPhones = customerRepository.findBySourceSystem(source).stream()
-            .filter(customer -> customer.getCustomerPhone() == null)
+        long nullPhones = recordSubjectRepository.findByExternalInstitution(institution).stream()
+            .filter(recordSubject -> recordSubject.getRequiredFieldValue() == null)
             .count();
 
         assertThat(result.expectedIncidentType()).isEqualTo(AnomalyType.NULL_SPIKE);
@@ -111,31 +111,31 @@ class ScenarioInjectionServiceTest {
     }
 
     @Test
-    void injectsDuplicatePaymentIdScenario() {
+    void injectsDuplicateVerificationRecordIdScenario() {
         ScenarioInjectionResult result = scenarioInjectionService.inject(new ScenarioInjectionCommand(
-            ScenarioType.DUPLICATE_PAYMENT_ID,
-            "SRC_02",
+            ScenarioType.DUPLICATE_RECORD_KEY,
+            "INST_02",
             BASE_DATE
         ));
 
-        String duplicatePaymentId = "PAY-DUPLICATE-SRC_02-2026-09-13";
+        String duplicateVerificationRecordKey = "VR-DUPLICATE-INST_02-2026-09-13";
 
         assertThat(result.expectedIncidentType()).isEqualTo(AnomalyType.DUPLICATE_DETECTED);
         assertThat(result.affectedRows()).isEqualTo(2);
-        assertThat(paymentRepository.findByPaymentId(duplicatePaymentId)).hasSize(2);
+        assertThat(verificationRecordRepository.findByVerificationRecordKey(duplicateVerificationRecordKey)).hasSize(2);
     }
 
-    private java.util.List<com.opslens.domain.datasource.Order> ordersForTargetDate() {
-        return orderRepository.findBySourceSystemAndOrderedAtBetween(
-            source,
+    private java.util.List<com.opslens.domain.datasource.TreatmentRecord> treatmentRecordsForTargetDate() {
+        return treatmentRecordRepository.findByExternalInstitutionAndRecordedAtBetween(
+            institution,
             BASE_DATE.atStartOfDay().toInstant(ZoneOffset.UTC),
             BASE_DATE.plusDays(1).atStartOfDay().toInstant(ZoneOffset.UTC)
         );
     }
 
-    private java.util.List<com.opslens.domain.datasource.Payment> paymentsForTargetDate() {
-        return paymentRepository.findBySourceSystemAndPaidAtBetween(
-            source,
+    private java.util.List<com.opslens.domain.datasource.VerificationRecord> verificationRecordsForTargetDate() {
+        return verificationRecordRepository.findByExternalInstitutionAndVerifiedAtBetween(
+            institution,
             BASE_DATE.atStartOfDay().toInstant(ZoneOffset.UTC),
             BASE_DATE.plusDays(1).atStartOfDay().toInstant(ZoneOffset.UTC)
         );

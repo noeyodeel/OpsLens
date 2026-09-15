@@ -37,15 +37,15 @@ class ScenarioControllerTest {
     void returnsScenarioDefinitions() throws Exception {
         when(scenarioInjectionService.definitions())
             .thenReturn(List.of(new ScenarioDefinition(
-                ScenarioType.ORDER_VOLUME_DROP,
-                "Order volume drop",
-                "Deletes 80% of orders and related payments for a source/date.",
+                ScenarioType.TREATMENT_RECORD_VOLUME_DROP,
+                "Treatment record volume drop",
+                "Deletes 80% of treatment_records and related verification_records for a institution/date.",
                 AnomalyType.COUNT_DROP
             )));
 
         mockMvc.perform(get("/api/scenarios"))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$[0].scenarioType").value("ORDER_VOLUME_DROP"))
+            .andExpect(jsonPath("$[0].scenarioType").value("TREATMENT_RECORD_VOLUME_DROP"))
             .andExpect(jsonPath("$[0].expectedIncidentType").value("COUNT_DROP"));
     }
 
@@ -54,13 +54,13 @@ class ScenarioControllerTest {
         when(scenarioInjectionService.inject(any()))
             .thenReturn(new ScenarioInjectionResult(
                 1L,
-                ScenarioType.ORDER_VOLUME_DROP,
-                "Order volume drop for SRC_02",
-                "SRC_02",
+                ScenarioType.TREATMENT_RECORD_VOLUME_DROP,
+                "Treatment record volume drop for INST_02",
+                "INST_02",
                 LocalDate.of(2026, 9, 13),
                 8,
                 AnomalyType.COUNT_DROP,
-                "Orders from SRC_02 dropped because most records were not ingested.",
+                "Treatment records from INST_02 dropped because most records were not ingested.",
                 Instant.parse("2026-09-13T00:00:00Z")
             ));
 
@@ -68,15 +68,15 @@ class ScenarioControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
                     {
-                      "scenarioType": "ORDER_VOLUME_DROP",
-                      "targetSourceCode": "SRC_02",
+                      "scenarioType": "TREATMENT_RECORD_VOLUME_DROP",
+                      "targetInstitutionCode": "INST_02",
                       "targetDate": "2026-09-13"
                     }
                     """))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.scenarioId").value(1))
-            .andExpect(jsonPath("$.scenarioType").value("ORDER_VOLUME_DROP"))
-            .andExpect(jsonPath("$.targetSourceCode").value("SRC_02"))
+            .andExpect(jsonPath("$.scenarioType").value("TREATMENT_RECORD_VOLUME_DROP"))
+            .andExpect(jsonPath("$.targetInstitutionCode").value("INST_02"))
             .andExpect(jsonPath("$.targetDate").value("2026-09-13"))
             .andExpect(jsonPath("$.affectedRows").value(8))
             .andExpect(jsonPath("$.expectedIncidentType").value("COUNT_DROP"));

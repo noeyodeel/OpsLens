@@ -10,14 +10,14 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.opslens.domain.datasource.Customer;
-import com.opslens.domain.datasource.CustomerRepository;
-import com.opslens.domain.datasource.Order;
-import com.opslens.domain.datasource.OrderRepository;
-import com.opslens.domain.datasource.Payment;
-import com.opslens.domain.datasource.PaymentRepository;
-import com.opslens.domain.datasource.SourceSystem;
-import com.opslens.domain.datasource.SourceSystemRepository;
+import com.opslens.domain.datasource.RecordSubject;
+import com.opslens.domain.datasource.RecordSubjectRepository;
+import com.opslens.domain.datasource.TreatmentRecord;
+import com.opslens.domain.datasource.TreatmentRecordRepository;
+import com.opslens.domain.datasource.VerificationRecord;
+import com.opslens.domain.datasource.VerificationRecordRepository;
+import com.opslens.domain.datasource.ExternalInstitution;
+import com.opslens.domain.datasource.ExternalInstitutionRepository;
 import com.opslens.domain.incident.AnomalyType;
 import com.opslens.domain.scenario.Scenario;
 import com.opslens.domain.scenario.ScenarioRepository;
@@ -26,27 +26,27 @@ import com.opslens.domain.scenario.ScenarioType;
 @Service
 public class ScenarioInjectionService {
 
-    private static final String DEFAULT_SOURCE_CODE = "SRC_02";
+    private static final String DEFAULT_INSTITUTION_CODE = "INST_02";
     private static final LocalDate DEFAULT_TARGET_DATE = LocalDate.of(2026, 9, 13);
 
-    private final SourceSystemRepository sourceSystemRepository;
-    private final CustomerRepository customerRepository;
-    private final OrderRepository orderRepository;
-    private final PaymentRepository paymentRepository;
+    private final ExternalInstitutionRepository externalInstitutionRepository;
+    private final RecordSubjectRepository recordSubjectRepository;
+    private final TreatmentRecordRepository treatmentRecordRepository;
+    private final VerificationRecordRepository verificationRecordRepository;
     private final ScenarioRepository scenarioRepository;
     private final Clock clock;
 
     public ScenarioInjectionService(
-        SourceSystemRepository sourceSystemRepository,
-        CustomerRepository customerRepository,
-        OrderRepository orderRepository,
-        PaymentRepository paymentRepository,
+        ExternalInstitutionRepository externalInstitutionRepository,
+        RecordSubjectRepository recordSubjectRepository,
+        TreatmentRecordRepository treatmentRecordRepository,
+        VerificationRecordRepository verificationRecordRepository,
         ScenarioRepository scenarioRepository
     ) {
-        this.sourceSystemRepository = sourceSystemRepository;
-        this.customerRepository = customerRepository;
-        this.orderRepository = orderRepository;
-        this.paymentRepository = paymentRepository;
+        this.externalInstitutionRepository = externalInstitutionRepository;
+        this.recordSubjectRepository = recordSubjectRepository;
+        this.treatmentRecordRepository = treatmentRecordRepository;
+        this.verificationRecordRepository = verificationRecordRepository;
         this.scenarioRepository = scenarioRepository;
         this.clock = Clock.systemUTC();
     }
@@ -55,21 +55,21 @@ public class ScenarioInjectionService {
     public List<ScenarioDefinition> definitions() {
         return List.of(
             new ScenarioDefinition(
-                ScenarioType.ORDER_VOLUME_DROP,
-                "Order volume drop",
-                "Deletes 80% of orders and related payments for a source/date.",
+                ScenarioType.TREATMENT_RECORD_VOLUME_DROP,
+                "Treatment record volume drop",
+                "Deletes 80% of treatment records and related verification records for an institution/date.",
                 AnomalyType.COUNT_DROP
             ),
             new ScenarioDefinition(
-                ScenarioType.CUSTOMER_PHONE_NULL_SPIKE,
-                "Customer phone NULL spike",
-                "Clears phone numbers for 80% of customers in a source system.",
+                ScenarioType.REQUIRED_FIELD_NULL_SPIKE,
+                "Required field NULL spike",
+                "Clears a required field for 80% of record subjects in an external institution.",
                 AnomalyType.NULL_SPIKE
             ),
             new ScenarioDefinition(
-                ScenarioType.DUPLICATE_PAYMENT_ID,
-                "Duplicate payment ID",
-                "Rewrites multiple payment rows to share the same business payment ID.",
+                ScenarioType.DUPLICATE_RECORD_KEY,
+                "Duplicate record key",
+                "Rewrites multiple verification records to share the same business record key.",
                 AnomalyType.DUPLICATE_DETECTED
             )
         );
@@ -79,17 +79,17 @@ public class ScenarioInjectionService {
     public ScenarioInjectionResult inject(ScenarioInjectionCommand command) {
         ScenarioInjectionCommand safeCommand = command == null ? ScenarioInjectionCommand.empty() : command;
         ScenarioType scenarioType = safeCommand.scenarioType() == null
-            ? ScenarioType.ORDER_VOLUME_DROP
+            ? ScenarioType.TREATMENT_RECORD_VOLUME_DROP
             : safeCommand.scenarioType();
-        String sourceCode = safeCommand.targetSourceCode() == null ? DEFAULT_SOURCE_CODE : safeCommand.targetSourceCode();
+        String institutionCode = safeCommand.targetInstitutionCode() == null ? DEFAULT_INSTITUTION_CODE : safeCommand.targetInstitutionCode();
         LocalDate targetDate = safeCommand.targetDate() == null ? DEFAULT_TARGET_DATE : safeCommand.targetDate();
-        SourceSystem sourceSystem = sourceSystemRepository.findByCode(sourceCode)
-            .orElseThrow(() -> new IllegalArgumentException("Unknown source system: " + sourceCode));
+        ExternalInstitution externalInstitution = externalInstitutionRepository.findByCode(institutionCode)
+            .orElseThrow(() -> new IllegalArgumentException("Unknown external institution: " + institutionCode));
 
         Scenario scenario = switch (scenarioType) {
-            case ORDER_VOLUME_DROP -> injectOrderVolumeDrop(sourceSystem, targetDate);
-            case CUSTOMER_PHONE_NULL_SPIKE -> injectCustomerPhoneNullSpike(sourceSystem, targetDate);
-            case DUPLICATE_PAYMENT_ID -> injectDuplicatePaymentId(sourceSystem, targetDate);
+            case TREATMENT_RECORD_VOLUME_DROP -> injectTreatmentRecordVolumeDrop(externalInstitution, targetDate);
+            case REQUIRED_FIELD_NULL_SPIKE -> injectRequiredFieldNullSpike(externalInstitution, targetDate);
+            case DUPLICATE_RECORD_KEY -> injectDuplicateRecordKey(externalInstitution, targetDate);
         };
 
         Scenario saved = scenarioRepository.save(scenario);
@@ -97,7 +97,7 @@ public class ScenarioInjectionService {
             saved.getId(),
             saved.getScenarioType(),
             saved.getName(),
-            saved.getTargetSourceCode(),
+            saved.getTargetInstitutionCode(),
             saved.getTargetDate(),
             saved.getAffectedRows(),
             saved.getExpectedIncidentType(),
@@ -106,79 +106,79 @@ public class ScenarioInjectionService {
         );
     }
 
-    private Scenario injectOrderVolumeDrop(SourceSystem sourceSystem, LocalDate targetDate) {
-        List<Order> targetOrders = findOrders(sourceSystem, targetDate).stream()
-            .sorted(Comparator.comparing(Order::getOrderNo))
+    private Scenario injectTreatmentRecordVolumeDrop(ExternalInstitution externalInstitution, LocalDate targetDate) {
+        List<TreatmentRecord> targetTreatmentRecords = findTreatmentRecords(externalInstitution, targetDate).stream()
+            .sorted(Comparator.comparing(TreatmentRecord::getTreatmentRecordNo))
             .toList();
-        int deleteCount = Math.max(1, (int) Math.floor(targetOrders.size() * 0.8));
-        List<Order> ordersToDelete = targetOrders.stream().limit(deleteCount).toList();
-        List<Payment> paymentsToDelete = paymentRepository.findByOrderIn(ordersToDelete);
+        int deleteCount = Math.max(1, (int) Math.floor(targetTreatmentRecords.size() * 0.8));
+        List<TreatmentRecord> treatmentRecordsToDelete = targetTreatmentRecords.stream().limit(deleteCount).toList();
+        List<VerificationRecord> verificationRecordsToDelete = verificationRecordRepository.findByTreatmentRecordIn(treatmentRecordsToDelete);
 
-        paymentRepository.deleteAllInBatch(paymentsToDelete);
-        orderRepository.deleteAllInBatch(ordersToDelete);
+        verificationRecordRepository.deleteAllInBatch(verificationRecordsToDelete);
+        treatmentRecordRepository.deleteAllInBatch(treatmentRecordsToDelete);
 
         return new Scenario(
-            "Order volume drop for " + sourceSystem.getCode(),
-            ScenarioType.ORDER_VOLUME_DROP,
-            sourceSystem.getCode(),
+            "Treatment record volume drop for " + externalInstitution.getCode(),
+            ScenarioType.TREATMENT_RECORD_VOLUME_DROP,
+            externalInstitution.getCode(),
             targetDate,
-            ordersToDelete.size(),
+            treatmentRecordsToDelete.size(),
             AnomalyType.COUNT_DROP,
-            "Orders from %s dropped because most records for %s were not ingested.".formatted(sourceSystem.getCode(), targetDate),
+            "Treatment records from %s dropped because most records for %s were not ingested.".formatted(externalInstitution.getCode(), targetDate),
             Instant.now(clock)
         );
     }
 
-    private Scenario injectCustomerPhoneNullSpike(SourceSystem sourceSystem, LocalDate targetDate) {
-        List<Customer> customers = customerRepository.findBySourceSystem(sourceSystem).stream()
-            .sorted(Comparator.comparing(Customer::getCustomerNo))
+    private Scenario injectRequiredFieldNullSpike(ExternalInstitution externalInstitution, LocalDate targetDate) {
+        List<RecordSubject> recordSubjects = recordSubjectRepository.findByExternalInstitution(externalInstitution).stream()
+            .sorted(Comparator.comparing(RecordSubject::getRecordSubjectNo))
             .toList();
-        int affectedRows = Math.max(1, (int) Math.floor(customers.size() * 0.8));
-        customers.stream()
+        int affectedRows = Math.max(1, (int) Math.floor(recordSubjects.size() * 0.8));
+        recordSubjects.stream()
             .limit(affectedRows)
-            .forEach(Customer::clearPhone);
+            .forEach(RecordSubject::clearRequiredField);
 
         return new Scenario(
-            "Customer phone NULL spike for " + sourceSystem.getCode(),
-            ScenarioType.CUSTOMER_PHONE_NULL_SPIKE,
-            sourceSystem.getCode(),
+            "Required field NULL spike for " + externalInstitution.getCode(),
+            ScenarioType.REQUIRED_FIELD_NULL_SPIKE,
+            externalInstitution.getCode(),
             targetDate,
             affectedRows,
             AnomalyType.NULL_SPIKE,
-            "Customer phone values from %s became NULL during source data ingestion.".formatted(sourceSystem.getCode()),
+            "Required field values from %s became NULL during institution data ingestion.".formatted(externalInstitution.getCode()),
             Instant.now(clock)
         );
     }
 
-    private Scenario injectDuplicatePaymentId(SourceSystem sourceSystem, LocalDate targetDate) {
-        List<Payment> payments = paymentRepository.findBySourceSystemAndPaidAtBetween(
-                sourceSystem,
+    private Scenario injectDuplicateRecordKey(ExternalInstitution externalInstitution, LocalDate targetDate) {
+        List<VerificationRecord> verificationRecords = verificationRecordRepository.findByExternalInstitutionAndVerifiedAtBetween(
+                externalInstitution,
                 startOfDay(targetDate),
                 startOfDay(targetDate.plusDays(1))
             ).stream()
-            .sorted(Comparator.comparing(Payment::getPaymentId))
+            .sorted(Comparator.comparing(VerificationRecord::getVerificationRecordKey))
             .toList();
-        int affectedRows = Math.min(Math.max(2, payments.size() / 4), payments.size());
-        String duplicatePaymentId = "PAY-DUPLICATE-%s-%s".formatted(sourceSystem.getCode(), targetDate);
-        payments.stream()
+        int affectedRows = Math.min(Math.max(2, verificationRecords.size() / 4), verificationRecords.size());
+        String duplicateVerificationRecordKey = "VR-DUPLICATE-%s-%s".formatted(externalInstitution.getCode(), targetDate);
+        verificationRecords.stream()
             .limit(affectedRows)
-            .forEach(payment -> payment.replacePaymentId(duplicatePaymentId));
+            .forEach(verificationRecord -> verificationRecord.replaceVerificationRecordKey(duplicateVerificationRecordKey));
 
         return new Scenario(
-            "Duplicate payment ID for " + sourceSystem.getCode(),
-            ScenarioType.DUPLICATE_PAYMENT_ID,
-            sourceSystem.getCode(),
+            "Duplicate record key for " + externalInstitution.getCode(),
+            ScenarioType.DUPLICATE_RECORD_KEY,
+            externalInstitution.getCode(),
             targetDate,
             affectedRows,
             AnomalyType.DUPLICATE_DETECTED,
-            "Multiple payment rows from %s share the same payment_id.".formatted(sourceSystem.getCode()),
+            "Multiple verification records from %s share the same verification_record_key.".formatted(externalInstitution.getCode()),
             Instant.now(clock)
         );
     }
 
-    private List<Order> findOrders(SourceSystem sourceSystem, LocalDate targetDate) {
-        return orderRepository.findBySourceSystemAndOrderedAtBetween(
-            sourceSystem,
+    private List<TreatmentRecord> findTreatmentRecords(ExternalInstitution externalInstitution, LocalDate targetDate) {
+        return treatmentRecordRepository.findByExternalInstitutionAndRecordedAtBetween(
+            externalInstitution,
             startOfDay(targetDate),
             startOfDay(targetDate.plusDays(1))
         );
@@ -198,7 +198,7 @@ public class ScenarioInjectionService {
 
     public record ScenarioInjectionCommand(
         ScenarioType scenarioType,
-        String targetSourceCode,
+        String targetInstitutionCode,
         LocalDate targetDate
     ) {
 
@@ -211,7 +211,7 @@ public class ScenarioInjectionService {
         Long scenarioId,
         ScenarioType scenarioType,
         String name,
-        String targetSourceCode,
+        String targetInstitutionCode,
         LocalDate targetDate,
         int affectedRows,
         AnomalyType expectedIncidentType,

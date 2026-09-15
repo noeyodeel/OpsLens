@@ -14,10 +14,10 @@ public interface IncidentRepository extends JpaRepository<Incident, Long> {
 
     List<Incident> findByDetectedAtBetweenOrderByDetectedAtDesc(Instant from, Instant to);
 
-    boolean existsByTargetTableAndAnomalyTypeAndTargetSourceCodeAndDetectedAtBetween(
+    boolean existsByTargetTableAndAnomalyTypeAndTargetInstitutionCodeAndDetectedAtBetween(
         String targetTable,
         AnomalyType anomalyType,
-        String targetSourceCode,
+        String targetInstitutionCode,
         Instant from,
         Instant to
     );

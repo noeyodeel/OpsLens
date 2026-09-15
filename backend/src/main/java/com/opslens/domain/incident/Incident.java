@@ -41,7 +41,7 @@ public class Incident {
     private String targetTable;
 
     @Column(length = 50)
-    private String targetSourceCode;
+    private String targetInstitutionCode;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 50)
@@ -75,7 +75,7 @@ public class Incident {
         DetectionRule detectionRule,
         IncidentSeverity severity,
         String targetTable,
-        String targetSourceCode,
+        String targetInstitutionCode,
         AnomalyType anomalyType,
         String summary,
         Instant detectedAt
@@ -85,7 +85,7 @@ public class Incident {
         this.severity = severity;
         this.status = IncidentStatus.DETECTED;
         this.targetTable = targetTable;
-        this.targetSourceCode = targetSourceCode;
+        this.targetInstitutionCode = targetInstitutionCode;
         this.anomalyType = anomalyType;
         this.summary = summary;
         this.detectedAt = detectedAt;
@@ -128,8 +128,8 @@ public class Incident {
         return targetTable;
     }
 
-    public String getTargetSourceCode() {
-        return targetSourceCode;
+    public String getTargetInstitutionCode() {
+        return targetInstitutionCode;
     }
 
     public AnomalyType getAnomalyType() {

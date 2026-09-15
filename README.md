@@ -1,16 +1,20 @@
-﻿# OpsLens
+# OpsLens
 
-OpsLens is an AI-assisted incident analysis tool for operational data.
+OpsLens is an AI-assisted incident analysis tool for institution data intake operations.
 
-It detects abnormal data patterns, creates incidents, suggests possible root causes, generates safe verification SQL, and produces separate reports for developers and business users.
+It detects abnormal transmission patterns, creates incidents, suggests possible root causes, generates safe verification SQL, and produces separate reports for developers and business users.
 
 ## Why This Project Exists
+
+This project is based on repeated verification work that happens when external institutions send operational records into a backend system.
+
+It does not use company data or real treatment data. The MVP uses synthetic institution transmission data and intentionally injected incident scenarios.
 
 In real backend operation work, developers often repeat the same incident investigation steps:
 
 - Check data volume changes
 - Compare current data with historical baselines
-- Find NULL spikes, duplicates, and missing source data
+- Find NULL spikes, duplicates, and missing institution data
 - Inspect ingestion logs and related tables
 - Write verification SQL
 - Explain the cause and status to non-developers
@@ -48,7 +52,7 @@ OpsLens assists developers by collecting context, suggesting likely causes, and 
 
 ## Backend Modules
 
-- `domain.datasource`: source systems, synthetic operational data, ingestion logs, and repositories
+- `domain.datasource`: external institutions, synthetic transmission data, ingestion logs, and repositories
 - `domain.incident`: detection rules, incidents, metric snapshots, status lifecycle, and repositories
 - `domain.scenario`: injected incident scenarios and expected root causes
 - `application.detection`: rule-based anomaly detection and incident creation
@@ -102,7 +106,7 @@ Generate normal synthetic data:
 ```bash
 curl -X POST http://localhost:8080/api/test-data/generate \
   -H "Content-Type: application/json" \
-  -d '{"days":8,"sourceCount":3,"customersPerSource":20,"ordersPerSourcePerDay":40,"seed":20260913,"baseDate":"2026-09-13"}'
+  -d '{"days":8,"institutionCount":3,"subjectsPerInstitution":20,"recordsPerInstitutionPerDay":40,"seed":20260913,"baseDate":"2026-09-13"}'
 ```
 
 List supported scenarios:
@@ -116,7 +120,7 @@ Inject a scenario:
 ```bash
 curl -X POST http://localhost:8080/api/scenarios/inject \
   -H "Content-Type: application/json" \
-  -d '{"scenarioType":"ORDER_VOLUME_DROP","targetSourceCode":"SRC_02","targetDate":"2026-09-13"}'
+  -d '{"scenarioType":"TREATMENT_RECORD_VOLUME_DROP","targetInstitutionCode":"INST_02","targetDate":"2026-09-13"}'
 ```
 
 Run anomaly detection:

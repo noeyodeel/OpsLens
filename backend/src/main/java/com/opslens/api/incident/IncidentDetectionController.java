@@ -8,24 +8,24 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.opslens.application.detection.CountDropDetectionService;
-import com.opslens.application.detection.CountDropDetectionService.CountDropDetectionCommand;
-import com.opslens.application.detection.CountDropDetectionService.CountDropDetectionResult;
+import com.opslens.application.detection.VolumeDropDetectionService;
+import com.opslens.application.detection.VolumeDropDetectionService.VolumeDropDetectionCommand;
+import com.opslens.application.detection.VolumeDropDetectionService.VolumeDropDetectionResult;
 
 @RestController
 @RequestMapping("/api/incidents")
 public class IncidentDetectionController {
 
-    private final CountDropDetectionService countDropDetectionService;
+    private final VolumeDropDetectionService volumeDropDetectionService;
 
-    public IncidentDetectionController(CountDropDetectionService countDropDetectionService) {
-        this.countDropDetectionService = countDropDetectionService;
+    public IncidentDetectionController(VolumeDropDetectionService volumeDropDetectionService) {
+        this.volumeDropDetectionService = volumeDropDetectionService;
     }
 
     @PostMapping("/detect")
-    public List<CountDropDetectionResult> detect(@RequestBody(required = false) DetectIncidentRequest request) {
+    public List<VolumeDropDetectionResult> detect(@RequestBody(required = false) DetectIncidentRequest request) {
         DetectIncidentRequest safeRequest = request == null ? DetectIncidentRequest.empty() : request;
-        return countDropDetectionService.detect(safeRequest.toCommand());
+        return volumeDropDetectionService.detect(safeRequest.toCommand());
     }
 
     public record DetectIncidentRequest(LocalDate targetDate) {
@@ -34,8 +34,8 @@ public class IncidentDetectionController {
             return new DetectIncidentRequest(null);
         }
 
-        private CountDropDetectionCommand toCommand() {
-            return new CountDropDetectionCommand(targetDate);
+        private VolumeDropDetectionCommand toCommand() {
+            return new VolumeDropDetectionCommand(targetDate);
         }
     }
 }

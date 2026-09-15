@@ -46,19 +46,19 @@ class TestDataControllerTest {
                 .content("""
                     {
                       "days": 2,
-                      "sourceCount": 2,
-                      "customersPerSource": 3,
-                      "ordersPerSourcePerDay": 4,
+                      "institutionCount": 2,
+                      "subjectsPerInstitution": 3,
+                      "recordsPerInstitutionPerDay": 4,
                       "seed": 7,
                       "baseDate": "2026-09-13",
                       "resetExisting": true
                     }
                     """))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.sourceSystems").value(2))
-            .andExpect(jsonPath("$.customers").value(6))
-            .andExpect(jsonPath("$.orders").value(16))
-            .andExpect(jsonPath("$.payments").value(16))
+            .andExpect(jsonPath("$.externalInstitutions").value(2))
+            .andExpect(jsonPath("$.recordSubjects").value(6))
+            .andExpect(jsonPath("$.treatmentRecords").value(16))
+            .andExpect(jsonPath("$.verificationRecords").value(16))
             .andExpect(jsonPath("$.ingestionLogs").value(4))
             .andExpect(jsonPath("$.days").value(2))
             .andExpect(jsonPath("$.seed").value(7))

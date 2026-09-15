@@ -35,9 +35,9 @@ public class TestDataController {
 
     public record GenerateTestDataRequest(
         @Min(1) @Max(30) Integer days,
-        @Min(1) @Max(10) Integer sourceCount,
-        @Min(1) @Max(500) Integer customersPerSource,
-        @Min(1) @Max(2_000) Integer ordersPerSourcePerDay,
+        @Min(1) @Max(10) Integer institutionCount,
+        @Min(1) @Max(500) Integer subjectsPerInstitution,
+        @Min(1) @Max(2_000) Integer recordsPerInstitutionPerDay,
         Long seed,
         LocalDate baseDate,
         Boolean resetExisting
@@ -50,9 +50,9 @@ public class TestDataController {
         private TestDataGenerationCommand toCommand() {
             return new TestDataGenerationCommand(
                 days,
-                sourceCount,
-                customersPerSource,
-                ordersPerSourcePerDay,
+                institutionCount,
+                subjectsPerInstitution,
+                recordsPerInstitutionPerDay,
                 seed,
                 baseDate,
                 resetExisting

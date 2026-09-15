@@ -11,8 +11,8 @@ import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.TestPropertySource;
 
-import com.opslens.application.detection.CountDropDetectionService.CountDropDetectionCommand;
-import com.opslens.application.detection.CountDropDetectionService.CountDropDetectionResult;
+import com.opslens.application.detection.VolumeDropDetectionService.VolumeDropDetectionCommand;
+import com.opslens.application.detection.VolumeDropDetectionService.VolumeDropDetectionResult;
 import com.opslens.application.scenario.ScenarioInjectionService;
 import com.opslens.application.scenario.ScenarioInjectionService.ScenarioInjectionCommand;
 import com.opslens.application.testdata.TestDataGenerationService;
@@ -28,13 +28,13 @@ import com.opslens.domain.scenario.ScenarioType;
 @Import({
     TestDataGenerationService.class,
     ScenarioInjectionService.class,
-    CountDropDetectionService.class
+    VolumeDropDetectionService.class
 })
 @TestPropertySource(properties = {
     "spring.flyway.enabled=false",
     "spring.jpa.hibernate.ddl-auto=create-drop"
 })
-class CountDropDetectionServiceTest {
+class VolumeDropDetectionServiceTest {
 
     private static final LocalDate TARGET_DATE = LocalDate.of(2026, 9, 13);
 
@@ -45,7 +45,7 @@ class CountDropDetectionServiceTest {
     private ScenarioInjectionService scenarioInjectionService;
 
     @Autowired
-    private CountDropDetectionService countDropDetectionService;
+    private VolumeDropDetectionService countDropDetectionService;
 
     @Autowired
     private IncidentRepository incidentRepository;
@@ -67,56 +67,56 @@ class CountDropDetectionServiceTest {
     }
 
     @Test
-    void createsIncidentWhenSourceOrderCountDropsBelowThreshold() {
+    void createsIncidentWhenInstitutionRecordVolumeDropsBelowThreshold() {
         scenarioInjectionService.inject(new ScenarioInjectionCommand(
-            ScenarioType.ORDER_VOLUME_DROP,
-            "SRC_02",
+            ScenarioType.TREATMENT_RECORD_VOLUME_DROP,
+            "INST_02",
             TARGET_DATE
         ));
 
-        var results = countDropDetectionService.detect(new CountDropDetectionCommand(TARGET_DATE));
+        var results = countDropDetectionService.detect(new VolumeDropDetectionCommand(TARGET_DATE));
 
         assertThat(results).hasSize(3);
         assertThat(results)
-            .filteredOn(CountDropDetectionResult::incidentCreated)
+            .filteredOn(VolumeDropDetectionResult::incidentCreated)
             .singleElement()
             .satisfies(result -> {
-                assertThat(result.targetSourceCode()).isEqualTo("SRC_02");
+                assertThat(result.targetInstitutionCode()).isEqualTo("INST_02");
                 assertThat(result.baselineAverage()).isEqualByComparingTo("40.0000");
                 assertThat(result.currentCount()).isEqualByComparingTo("8.0000");
                 assertThat(result.changeRate()).isEqualByComparingTo("-80.0000");
-                assertThat(result.incidentNo()).isEqualTo("INC-20260913-COUNT-DROP-SRC_02");
+                assertThat(result.incidentNo()).isEqualTo("INC-20260913-VOLUME-DROP-INST_02");
             });
 
-        Incident incident = incidentRepository.findByIncidentNo("INC-20260913-COUNT-DROP-SRC_02").orElseThrow();
+        Incident incident = incidentRepository.findByIncidentNo("INC-20260913-VOLUME-DROP-INST_02").orElseThrow();
         assertThat(incident.getStatus()).isEqualTo(IncidentStatus.DETECTED);
         assertThat(incident.getAnomalyType()).isEqualTo(AnomalyType.COUNT_DROP);
-        assertThat(incident.getTargetSourceCode()).isEqualTo("SRC_02");
+        assertThat(incident.getTargetInstitutionCode()).isEqualTo("INST_02");
         assertThat(metricSnapshotRepository.findByIncidentOrderByMeasuredAtAsc(incident)).hasSize(1);
     }
 
     @Test
     void doesNotCreateDuplicateIncidentForSameSourceAndDate() {
         scenarioInjectionService.inject(new ScenarioInjectionCommand(
-            ScenarioType.ORDER_VOLUME_DROP,
-            "SRC_02",
+            ScenarioType.TREATMENT_RECORD_VOLUME_DROP,
+            "INST_02",
             TARGET_DATE
         ));
 
-        countDropDetectionService.detect(new CountDropDetectionCommand(TARGET_DATE));
-        countDropDetectionService.detect(new CountDropDetectionCommand(TARGET_DATE));
+        countDropDetectionService.detect(new VolumeDropDetectionCommand(TARGET_DATE));
+        countDropDetectionService.detect(new VolumeDropDetectionCommand(TARGET_DATE));
 
         assertThat(incidentRepository.count()).isEqualTo(1);
-        Incident incident = incidentRepository.findByIncidentNo("INC-20260913-COUNT-DROP-SRC_02").orElseThrow();
+        Incident incident = incidentRepository.findByIncidentNo("INC-20260913-VOLUME-DROP-INST_02").orElseThrow();
         assertThat(metricSnapshotRepository.findByIncidentOrderByMeasuredAtAsc(incident)).hasSize(1);
     }
 
     @Test
     void doesNotCreateIncidentForNormalData() {
-        var results = countDropDetectionService.detect(new CountDropDetectionCommand(TARGET_DATE));
+        var results = countDropDetectionService.detect(new VolumeDropDetectionCommand(TARGET_DATE));
 
         assertThat(results).hasSize(3);
-        assertThat(results).noneMatch(CountDropDetectionResult::incidentCreated);
+        assertThat(results).noneMatch(VolumeDropDetectionResult::incidentCreated);
         assertThat(incidentRepository.count()).isZero();
     }
 }

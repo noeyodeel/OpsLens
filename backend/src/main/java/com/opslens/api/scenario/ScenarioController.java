@@ -40,7 +40,7 @@ public class ScenarioController {
 
     public record InjectScenarioRequest(
         ScenarioType scenarioType,
-        String targetSourceCode,
+        String targetInstitutionCode,
         LocalDate targetDate
     ) {
 
@@ -49,7 +49,7 @@ public class ScenarioController {
         }
 
         private ScenarioInjectionCommand toCommand() {
-            return new ScenarioInjectionCommand(scenarioType, targetSourceCode, targetDate);
+            return new ScenarioInjectionCommand(scenarioType, targetInstitutionCode, targetDate);
         }
     }
 }

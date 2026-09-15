@@ -22,8 +22,8 @@ public class DataIngestionLog {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "source_system_id", nullable = false)
-    private SourceSystem sourceSystem;
+    @JoinColumn(name = "external_institution_id", nullable = false)
+    private ExternalInstitution externalInstitution;
 
     @Column(nullable = false, length = 50)
     private String targetTable;
@@ -52,7 +52,7 @@ public class DataIngestionLog {
     }
 
     public DataIngestionLog(
-        SourceSystem sourceSystem,
+        ExternalInstitution externalInstitution,
         String targetTable,
         LocalDate batchDate,
         int receivedCount,
@@ -62,7 +62,7 @@ public class DataIngestionLog {
         Instant startedAt,
         Instant endedAt
     ) {
-        this.sourceSystem = sourceSystem;
+        this.externalInstitution = externalInstitution;
         this.targetTable = targetTable;
         this.batchDate = batchDate;
         this.receivedCount = receivedCount;
@@ -77,8 +77,8 @@ public class DataIngestionLog {
         return id;
     }
 
-    public SourceSystem getSourceSystem() {
-        return sourceSystem;
+    public ExternalInstitution getExternalInstitution() {
+        return externalInstitution;
     }
 
     public String getTargetTable() {

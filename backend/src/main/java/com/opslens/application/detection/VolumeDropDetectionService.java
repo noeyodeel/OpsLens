@@ -11,9 +11,9 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.opslens.domain.datasource.OrderRepository;
-import com.opslens.domain.datasource.SourceSystem;
-import com.opslens.domain.datasource.SourceSystemRepository;
+import com.opslens.domain.datasource.TreatmentRecordRepository;
+import com.opslens.domain.datasource.ExternalInstitution;
+import com.opslens.domain.datasource.ExternalInstitutionRepository;
 import com.opslens.domain.incident.AnomalyType;
 import com.opslens.domain.incident.DetectionRule;
 import com.opslens.domain.incident.DetectionRuleRepository;
@@ -26,60 +26,60 @@ import com.opslens.domain.incident.MetricType;
 import com.opslens.domain.incident.ThresholdType;
 
 @Service
-public class CountDropDetectionService {
+public class VolumeDropDetectionService {
 
-    private static final String TARGET_TABLE = "orders";
+    private static final String TARGET_TABLE = "treatment_records";
     private static final BigDecimal DEFAULT_THRESHOLD = new BigDecimal("0.5000");
     private static final LocalDate DEFAULT_TARGET_DATE = LocalDate.of(2026, 9, 13);
 
-    private final SourceSystemRepository sourceSystemRepository;
-    private final OrderRepository orderRepository;
+    private final ExternalInstitutionRepository externalInstitutionRepository;
+    private final TreatmentRecordRepository treatmentRecordRepository;
     private final DetectionRuleRepository detectionRuleRepository;
     private final IncidentRepository incidentRepository;
     private final IncidentMetricSnapshotRepository metricSnapshotRepository;
 
-    public CountDropDetectionService(
-        SourceSystemRepository sourceSystemRepository,
-        OrderRepository orderRepository,
+    public VolumeDropDetectionService(
+        ExternalInstitutionRepository externalInstitutionRepository,
+        TreatmentRecordRepository treatmentRecordRepository,
         DetectionRuleRepository detectionRuleRepository,
         IncidentRepository incidentRepository,
         IncidentMetricSnapshotRepository metricSnapshotRepository
     ) {
-        this.sourceSystemRepository = sourceSystemRepository;
-        this.orderRepository = orderRepository;
+        this.externalInstitutionRepository = externalInstitutionRepository;
+        this.treatmentRecordRepository = treatmentRecordRepository;
         this.detectionRuleRepository = detectionRuleRepository;
         this.incidentRepository = incidentRepository;
         this.metricSnapshotRepository = metricSnapshotRepository;
     }
 
     @Transactional
-    public List<CountDropDetectionResult> detect(CountDropDetectionCommand command) {
+    public List<VolumeDropDetectionResult> detect(VolumeDropDetectionCommand command) {
         LocalDate targetDate = command == null || command.targetDate() == null
             ? DEFAULT_TARGET_DATE
             : command.targetDate();
         DetectionRule rule = findOrCreateRule();
-        List<CountDropDetectionResult> results = new ArrayList<>();
+        List<VolumeDropDetectionResult> results = new ArrayList<>();
 
-        for (SourceSystem sourceSystem : sourceSystemRepository.findAll()) {
-            if (!sourceSystem.isActive()) {
+        for (ExternalInstitution externalInstitution : externalInstitutionRepository.findAll()) {
+            if (!externalInstitution.isActive()) {
                 continue;
             }
 
-            CountMetrics metrics = countMetrics(sourceSystem, targetDate);
+            CountMetrics metrics = countMetrics(externalInstitution, targetDate);
             if (!metrics.hasBaseline()) {
-                results.add(CountDropDetectionResult.normal(sourceSystem.getCode(), targetDate, metrics));
+                results.add(VolumeDropDetectionResult.normal(externalInstitution.getCode(), targetDate, metrics));
                 continue;
             }
 
             BigDecimal thresholdCount = metrics.baselineAverage().multiply(rule.getThresholdValue());
             boolean dropped = metrics.currentCount().compareTo(thresholdCount) < 0;
             if (!dropped) {
-                results.add(CountDropDetectionResult.normal(sourceSystem.getCode(), targetDate, metrics));
+                results.add(VolumeDropDetectionResult.normal(externalInstitution.getCode(), targetDate, metrics));
                 continue;
             }
 
-            Incident incident = createIncidentIfAbsent(sourceSystem, targetDate, rule, metrics);
-            results.add(CountDropDetectionResult.detected(sourceSystem.getCode(), targetDate, metrics, incident.getIncidentNo()));
+            Incident incident = createIncidentIfAbsent(externalInstitution, targetDate, rule, metrics);
+            results.add(VolumeDropDetectionResult.detected(externalInstitution.getCode(), targetDate, metrics, incident.getIncidentNo()));
         }
 
         return results;
@@ -93,7 +93,7 @@ public class CountDropDetectionService {
                 ThresholdType.BELOW_RATIO
             )
             .orElseGet(() -> detectionRuleRepository.save(new DetectionRule(
-                "Orders daily count drop",
+                "Treatment records daily volume drop",
                 TARGET_TABLE,
                 MetricType.ROW_COUNT,
                 ThresholdType.BELOW_RATIO,
@@ -101,14 +101,14 @@ public class CountDropDetectionService {
             )));
     }
 
-    private CountMetrics countMetrics(SourceSystem sourceSystem, LocalDate targetDate) {
-        long currentCount = orderRepository.countBySourceSystemAndOrderedAtBetween(
-            sourceSystem,
+    private CountMetrics countMetrics(ExternalInstitution externalInstitution, LocalDate targetDate) {
+        long currentCount = treatmentRecordRepository.countByExternalInstitutionAndRecordedAtBetween(
+            externalInstitution,
             startOfDay(targetDate),
             startOfDay(targetDate.plusDays(1))
         );
-        long baselineTotal = orderRepository.countBySourceSystemAndOrderedAtBetween(
-            sourceSystem,
+        long baselineTotal = treatmentRecordRepository.countByExternalInstitutionAndRecordedAtBetween(
+            externalInstitution,
             startOfDay(targetDate.minusDays(7)),
             startOfDay(targetDate)
         );
@@ -126,32 +126,32 @@ public class CountDropDetectionService {
     }
 
     private Incident createIncidentIfAbsent(
-        SourceSystem sourceSystem,
+        ExternalInstitution externalInstitution,
         LocalDate targetDate,
         DetectionRule rule,
         CountMetrics metrics
     ) {
         Instant detectedAt = startOfDay(targetDate.plusDays(1));
-        boolean alreadyExists = incidentRepository.existsByTargetTableAndAnomalyTypeAndTargetSourceCodeAndDetectedAtBetween(
+        boolean alreadyExists = incidentRepository.existsByTargetTableAndAnomalyTypeAndTargetInstitutionCodeAndDetectedAtBetween(
             TARGET_TABLE,
             AnomalyType.COUNT_DROP,
-            sourceSystem.getCode(),
+            externalInstitution.getCode(),
             startOfDay(targetDate),
             startOfDay(targetDate.plusDays(2))
         );
         if (alreadyExists) {
-            return incidentRepository.findByIncidentNo(incidentNo(sourceSystem, targetDate)).orElseThrow();
+            return incidentRepository.findByIncidentNo(incidentNo(externalInstitution, targetDate)).orElseThrow();
         }
 
         Incident incident = incidentRepository.save(new Incident(
-            incidentNo(sourceSystem, targetDate),
+            incidentNo(externalInstitution, targetDate),
             rule,
             IncidentSeverity.CRITICAL,
             TARGET_TABLE,
-            sourceSystem.getCode(),
+            externalInstitution.getCode(),
             AnomalyType.COUNT_DROP,
-            "Order count for %s dropped from %s to %s.".formatted(
-                sourceSystem.getCode(),
+            "Treatment record count for %s dropped from %s to %s.".formatted(
+                externalInstitution.getCode(),
                 metrics.baselineAverage().stripTrailingZeros().toPlainString(),
                 metrics.currentCount().stripTrailingZeros().toPlainString()
             ),
@@ -159,7 +159,7 @@ public class CountDropDetectionService {
         ));
         metricSnapshotRepository.save(new IncidentMetricSnapshot(
             incident,
-            "orders.daily.count.%s".formatted(sourceSystem.getCode()),
+            "treatment_records.daily.count.%s".formatted(externalInstitution.getCode()),
             metrics.baselineAverage(),
             metrics.currentCount(),
             metrics.changeRate(),
@@ -168,19 +168,19 @@ public class CountDropDetectionService {
         return incident;
     }
 
-    private String incidentNo(SourceSystem sourceSystem, LocalDate targetDate) {
-        return "INC-%s-COUNT-DROP-%s".formatted(targetDate.toString().replace("-", ""), sourceSystem.getCode());
+    private String incidentNo(ExternalInstitution externalInstitution, LocalDate targetDate) {
+        return "INC-%s-VOLUME-DROP-%s".formatted(targetDate.toString().replace("-", ""), externalInstitution.getCode());
     }
 
     private Instant startOfDay(LocalDate date) {
         return date.atStartOfDay().toInstant(ZoneOffset.UTC);
     }
 
-    public record CountDropDetectionCommand(LocalDate targetDate) {
+    public record VolumeDropDetectionCommand(LocalDate targetDate) {
     }
 
-    public record CountDropDetectionResult(
-        String targetSourceCode,
+    public record VolumeDropDetectionResult(
+        String targetInstitutionCode,
         LocalDate targetDate,
         BigDecimal baselineAverage,
         BigDecimal currentCount,
@@ -189,9 +189,9 @@ public class CountDropDetectionService {
         String incidentNo
     ) {
 
-        private static CountDropDetectionResult normal(String sourceCode, LocalDate targetDate, CountMetrics metrics) {
-            return new CountDropDetectionResult(
-                sourceCode,
+        private static VolumeDropDetectionResult normal(String institutionCode, LocalDate targetDate, CountMetrics metrics) {
+            return new VolumeDropDetectionResult(
+                institutionCode,
                 targetDate,
                 metrics.baselineAverage(),
                 metrics.currentCount(),
@@ -201,14 +201,14 @@ public class CountDropDetectionService {
             );
         }
 
-        private static CountDropDetectionResult detected(
-            String sourceCode,
+        private static VolumeDropDetectionResult detected(
+            String institutionCode,
             LocalDate targetDate,
             CountMetrics metrics,
             String incidentNo
         ) {
-            return new CountDropDetectionResult(
-                sourceCode,
+            return new VolumeDropDetectionResult(
+                institutionCode,
                 targetDate,
                 metrics.baselineAverage(),
                 metrics.currentCount(),

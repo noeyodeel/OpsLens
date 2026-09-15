@@ -4,22 +4,22 @@ const incidents = [
   {
     id: 'INC-20260913-001',
     severity: 'CRITICAL',
-    title: 'Order ingestion volume dropped 72%',
-    target: 'orders',
+    title: 'Institution record intake dropped 72%',
+    target: 'treatment_records',
     status: 'Detected',
   },
   {
     id: 'INC-20260913-002',
     severity: 'WARNING',
-    title: 'customer_phone NULL ratio increased',
-    target: 'customers',
+    title: 'Required field NULL ratio increased',
+    target: 'record_subjects',
     status: 'Pending analysis',
   },
   {
     id: 'INC-20260913-003',
     severity: 'WARNING',
-    title: 'Duplicate payment_id values found',
-    target: 'payments',
+    title: 'Duplicate verification record keys found',
+    target: 'verification_records',
     status: 'Pending review',
   },
 ]
@@ -30,7 +30,7 @@ function App() {
       <section className="top-bar">
         <div>
           <p className="eyebrow">OpsLens MVP</p>
-          <h1>Operational data incident analysis</h1>
+          <h1>Institution data incident analysis</h1>
         </div>
         <span className="status-pill">Backend: /api/health</span>
       </section>

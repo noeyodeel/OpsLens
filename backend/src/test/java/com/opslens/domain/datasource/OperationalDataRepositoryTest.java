@@ -19,55 +19,55 @@ import org.springframework.test.context.TestPropertySource;
 class OperationalDataRepositoryTest {
 
     @Autowired
-    private SourceSystemRepository sourceSystemRepository;
+    private ExternalInstitutionRepository externalInstitutionRepository;
 
     @Autowired
-    private CustomerRepository customerRepository;
+    private RecordSubjectRepository recordSubjectRepository;
 
     @Autowired
-    private OrderRepository orderRepository;
+    private TreatmentRecordRepository treatmentRecordRepository;
 
     @Autowired
-    private PaymentRepository paymentRepository;
+    private VerificationRecordRepository verificationRecordRepository;
 
     @Autowired
     private DataIngestionLogRepository dataIngestionLogRepository;
 
     @Test
     void savesAndLoadsOperationalData() {
-        SourceSystem sourceSystem = sourceSystemRepository.save(new SourceSystem("SRC_A", "Source A"));
+        ExternalInstitution externalInstitution = externalInstitutionRepository.save(new ExternalInstitution("INST_A", "Institution A"));
         Instant now = Instant.parse("2026-09-13T00:00:00Z");
 
-        Customer customer = customerRepository.save(new Customer(
-            "CUST-001",
-            "Test Customer",
-            "010-0000-0000",
-            sourceSystem,
+        RecordSubject recordSubject = recordSubjectRepository.save(new RecordSubject(
+            "SUBJ-001",
+            "Test Subject",
+            "REQ-0000-0000",
+            externalInstitution,
             now
         ));
 
-        Order order = orderRepository.save(new Order(
-            "ORD-001",
-            customer,
-            sourceSystem,
+        TreatmentRecord treatmentRecord = treatmentRecordRepository.save(new TreatmentRecord(
+            "TR-001",
+            recordSubject,
+            externalInstitution,
             "COMPLETED",
             new BigDecimal("12000.00"),
             now,
             now.plusSeconds(60)
         ));
 
-        paymentRepository.save(new Payment(
-            "PAY-001",
-            order,
-            sourceSystem,
-            "PAID",
+        verificationRecordRepository.save(new VerificationRecord(
+            "VR-001",
+            treatmentRecord,
+            externalInstitution,
+            "VERIFIED",
             new BigDecimal("12000.00"),
             now.plusSeconds(120)
         ));
 
         dataIngestionLogRepository.save(new DataIngestionLog(
-            sourceSystem,
-            "orders",
+            externalInstitution,
+            "treatment_records",
             LocalDate.of(2026, 9, 13),
             100,
             98,
@@ -77,13 +77,13 @@ class OperationalDataRepositoryTest {
             now.minusSeconds(120)
         ));
 
-        assertThat(sourceSystemRepository.findByCode("SRC_A")).hasValueSatisfying(saved ->
-            assertThat(saved.getName()).isEqualTo("Source A")
+        assertThat(externalInstitutionRepository.findByCode("INST_A")).hasValueSatisfying(saved ->
+            assertThat(saved.getName()).isEqualTo("Institution A")
         );
-        assertThat(customerRepository.findByCustomerNo("CUST-001")).isPresent();
-        assertThat(orderRepository.countByOrderedAtBetween(now.minusSeconds(1), now.plusSeconds(1))).isEqualTo(1);
-        assertThat(paymentRepository.findByPaymentId("PAY-001")).hasSize(1);
-        assertThat(dataIngestionLogRepository.findByTargetTableAndBatchDate("orders", LocalDate.of(2026, 9, 13)))
+        assertThat(recordSubjectRepository.findBySubjectNo("SUBJ-001")).isPresent();
+        assertThat(treatmentRecordRepository.countByRecordedAtBetween(now.minusSeconds(1), now.plusSeconds(1))).isEqualTo(1);
+        assertThat(verificationRecordRepository.findByVerificationRecordKey("VR-001")).hasSize(1);
+        assertThat(dataIngestionLogRepository.findByTargetTableAndBatchDate("treatment_records", LocalDate.of(2026, 9, 13)))
             .hasSize(1);
     }
 }

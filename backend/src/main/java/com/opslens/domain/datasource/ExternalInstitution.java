@@ -10,8 +10,8 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
 @Entity
-@Table(name = "source_system")
-public class SourceSystem {
+@Table(name = "external_institution")
+public class ExternalInstitution {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -29,14 +29,14 @@ public class SourceSystem {
     @Column(nullable = false, updatable = false)
     private Instant createdAt;
 
-    protected SourceSystem() {
+    protected ExternalInstitution() {
     }
 
-    public SourceSystem(String code, String name) {
+    public ExternalInstitution(String code, String name) {
         this(code, name, Instant.now());
     }
 
-    public SourceSystem(String code, String name, Instant createdAt) {
+    public ExternalInstitution(String code, String name, Instant createdAt) {
         this.code = code;
         this.name = name;
         this.active = true;

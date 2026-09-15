@@ -30,7 +30,7 @@ public class Scenario {
     private ScenarioType scenarioType;
 
     @Column(nullable = false, length = 50)
-    private String targetSourceCode;
+    private String targetInstitutionCode;
 
     @Column(nullable = false)
     private LocalDate targetDate;
@@ -54,7 +54,7 @@ public class Scenario {
     public Scenario(
         String name,
         ScenarioType scenarioType,
-        String targetSourceCode,
+        String targetInstitutionCode,
         LocalDate targetDate,
         int affectedRows,
         AnomalyType expectedIncidentType,
@@ -63,7 +63,7 @@ public class Scenario {
     ) {
         this.name = name;
         this.scenarioType = scenarioType;
-        this.targetSourceCode = targetSourceCode;
+        this.targetInstitutionCode = targetInstitutionCode;
         this.targetDate = targetDate;
         this.affectedRows = affectedRows;
         this.expectedIncidentType = expectedIncidentType;
@@ -83,8 +83,8 @@ public class Scenario {
         return scenarioType;
     }
 
-    public String getTargetSourceCode() {
-        return targetSourceCode;
+    public String getTargetInstitutionCode() {
+        return targetInstitutionCode;
     }
 
     public LocalDate getTargetDate() {

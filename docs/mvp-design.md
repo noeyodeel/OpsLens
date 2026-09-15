@@ -1,4 +1,4 @@
-﻿# OpsLens MVP Design
+# OpsLens MVP Design
 
 ## 1. System Architecture
 
@@ -33,10 +33,10 @@ React Frontend
 
 Core domains:
 
-- SourceSystem
-- Order
-- Customer
-- Payment
+- ExternalInstitution
+- TreatmentRecord
+- RecordSubject
+- VerificationRecord
 - DataIngestionLog
 - DetectionRule
 - Incident
@@ -50,7 +50,7 @@ Core domains:
 Relationship overview:
 
 ```text
-SourceSystem 1:N DataIngestionLog
+ExternalInstitution 1:N DataIngestionLog
 DetectionRule 1:N Incident
 Incident 1:N IncidentMetricSnapshot
 Incident 1:1 IncidentAnalysis
@@ -64,10 +64,10 @@ Incident 1:1 EvaluationResult
 
 Initial tables:
 
-- `source_system`
-- `orders`
-- `customers`
-- `payments`
+- `external_institution`
+- `treatment_records`
+- `record_subjects`
+- `verification_records`
 - `data_ingestion_log`
 - `detection_rule`
 - `incident`
@@ -84,16 +84,16 @@ Operational data tables are implemented first because anomaly detection needs st
 
 Implemented operational tables:
 
-- `source_system`: synthetic external source systems.
-- `customers`: customer master-like data with nullable phone fields for NULL spike scenarios.
-- `orders`: order records used for count drop, count spike, and source missing scenarios.
-- `payments`: payment records used for duplicate payment and order-payment mismatch scenarios.
-- `data_ingestion_log`: batch/source ingestion status used to explain missing or partial data.
+- `external_institution`: synthetic external institutions that send operational records.
+- `record_subjects`: synthetic record subjects with nullable required fields for NULL spike scenarios.
+- `treatment_records`: synthetic treatment-like transmission records used for volume drop, count spike, and institution missing scenarios.
+- `verification_records`: synthetic verification records used for duplicate business key and record mismatch scenarios.
+- `data_ingestion_log`: batch/institution ingestion status used to explain missing or partial data.
 
 Implemented incident tables:
 
 - `detection_rule`: rule definitions used by anomaly detectors.
-- `incident`: detected anomaly events with severity, status, target table, target source, and anomaly type.
+- `incident`: detected anomaly events with severity, status, target table, target institution, and anomaly type.
 - `incident_metric_snapshot`: baseline/current metric values captured when an incident is created.
 
 ## 4. Anomaly Detection
@@ -106,17 +106,17 @@ Initial rules:
 - Count spike: current daily count is above 200% of the 7-day average.
 - NULL spike: target column NULL ratio doubles compared with baseline.
 - Duplicate detection: duplicate count for a unique business key is greater than zero.
-- Source missing: source count is zero or drops by more than 70%.
+- Source missing: institution count is zero or drops by more than 70%.
 - Processing failure spike: failed count ratio exceeds 10%.
 
 Rule-based detection is explainable, reproducible, and easier to validate than a statistical or ML-based approach for the first MVP.
 
 Implemented detector:
 
-- Source-level order count drop detection compares each active source system's target-day order count with the previous 7-day average.
+- Institution-level treatment record volume drop detection compares each active external institution's target-day record count with the previous 7-day average.
 - A `COUNT_DROP` incident is created when the current count is below 50% of the baseline average.
 - The detector records baseline count, current count, and change rate as an `incident_metric_snapshot`.
-- Duplicate incident creation is prevented for the same target table, anomaly type, source system, and detection window.
+- Duplicate incident creation is prevented for the same target table, anomaly type, external institution, and detection window.
 
 ## 5. AI Agent Input and Output
 
@@ -127,7 +127,7 @@ Input:
 ```json
 {
   "incident": {
-    "targetTable": "orders",
+    "targetTable": "treatment_records",
     "anomalyType": "COUNT_DROP",
     "severity": "CRITICAL",
     "baselineValue": 12000,
@@ -136,14 +136,14 @@ Input:
   },
   "relatedMetrics": [
     {
-      "name": "SRC_B orders",
+      "name": "INST_B treatment_records",
       "baseline": 4000,
       "current": 300
     }
   ],
   "schemaHints": [
-    "orders.source_system_id references source_system.id",
-    "data_ingestion_log tracks batch status by source"
+    "treatment_records.external_institution_id references external_institution.id",
+    "data_ingestion_log tracks batch status by institution"
   ]
 }
 ```
@@ -152,21 +152,21 @@ Output:
 
 ```json
 {
-  "summary": "Order volume dropped sharply compared with the baseline.",
-  "impactScope": "Orders from one source system may be incomplete.",
+  "summary": "Treatment record intake volume dropped sharply compared with the baseline.",
+  "impactScope": "Records from one external institution may be incomplete.",
   "suspectedCauses": [
     {
       "rank": 1,
-      "cause": "Source ingestion failure",
-      "reason": "The source-specific ingestion count dropped during the same window.",
+      "cause": "Institution ingestion failure",
+      "reason": "The institution-specific ingestion volume dropped during the same window.",
       "confidence": 0.82
     }
   ],
   "verificationSql": [
     {
-      "title": "Compare order count by source",
-      "purpose": "Check whether the drop is isolated to a specific source.",
-      "sql": "select source_system_id, count(*) from orders where ordered_at >= current_date group by source_system_id"
+      "title": "Compare treatment record count by institution",
+      "purpose": "Check whether the drop is isolated to a specific institution.",
+      "sql": "select external_institution_id, count(*) from treatment_records where recorded_at >= current_date group by external_institution_id"
     }
   ]
 }
@@ -200,7 +200,7 @@ Developer report:
 - Detection time
 - Baseline and current metric
 - Change rate
-- Related source systems
+- Related external institutions
 - Suspected causes
 - Verification SQL
 - Additional checks
@@ -302,10 +302,10 @@ The UI should focus on the incident workflow instead of becoming a generic admin
 
 Synthetic data is generated for:
 
-- Orders
-- Customers
-- Payments
-- Source systems
+- Treatment records
+- Record subjects
+- Verification records
+- External institutions
 - Ingestion logs
 
 The generator should use a fixed random seed so scenarios are reproducible.
@@ -321,11 +321,11 @@ POST /api/test-data/generate
 Default generation profile:
 
 - 8 days of data.
-- 3 source systems.
-- 20 customers per source system.
-- 40 orders per source system per day.
-- 1 successful payment per order.
-- 1 successful `orders` ingestion log per source system per day.
+- 3 external institutions.
+- 20 record subjects per external institution.
+- 40 treatment records per external institution per day.
+- 1 successful verification record per treatment record.
+- 1 successful `treatment_records` ingestion log per external institution per day.
 - Fixed default seed: `20260913`.
 
 The API resets existing operational data by default so repeated runs produce a clean normal baseline.
@@ -334,18 +334,18 @@ The API resets existing operational data by default so repeated runs produce a c
 
 Initial scenarios:
 
-1. 80% order volume drop for one source system.
-2. Sudden increase in `customer_phone` NULL ratio.
-3. Duplicate `payment_id` values.
-4. Missing order data for a specific date.
+1. 80% treatment record volume drop for one external institution.
+2. Sudden increase in `required_field_value` NULL ratio.
+3. Duplicate `verification_record_key` values.
+4. Missing treatment record data for a specific date.
 5. Batch failure increase causing partial ingestion.
-6. Orders exist but matching payment data is missing.
+6. Treatment records exist but matching verification data is missing.
 
 Implemented MVP scenarios:
 
-- `ORDER_VOLUME_DROP`: removes 80% of orders and related payments for a source/date.
-- `CUSTOMER_PHONE_NULL_SPIKE`: clears phone numbers for 80% of customers in a source system.
-- `DUPLICATE_PAYMENT_ID`: rewrites multiple payment rows to share the same `payment_id`.
+- `TREATMENT_RECORD_VOLUME_DROP`: removes 80% of treatment records and related verification records for an institution/date.
+- `REQUIRED_FIELD_NULL_SPIKE`: clears required field values for 80% of record subjects in an external institution.
+- `DUPLICATE_RECORD_KEY`: rewrites multiple verification records to share the same `verification_record_key`.
 
 Each scenario stores:
 
@@ -369,7 +369,7 @@ Implemented detection API:
 POST /api/incidents/detect
 ```
 
-The current MVP implementation detects `COUNT_DROP` incidents for the `orders` table.
+The current MVP implementation detects `COUNT_DROP` incidents for the `treatment_records` table.
 
 ## 13. MVP Evaluation
 
@@ -404,10 +404,10 @@ Small independently testable tasks:
 4. Create incident tables, JPA entities, status lifecycle methods, and repository tests.
 5. Implement seed-based synthetic normal data generation API.
 6. Implement scenario table, supported scenario API, and anomaly injection service.
-7. Implement count drop detection.
+7. Implement volume drop detection.
 8. Implement NULL spike detection.
 9. Implement duplicate detection.
-10. Implement source missing detection.
+10. Implement institution missing detection.
 11. Implement incident list API.
 12. Implement incident detail API.
 13. Build React dashboard.

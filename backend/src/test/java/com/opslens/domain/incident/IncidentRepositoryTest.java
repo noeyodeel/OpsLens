@@ -29,8 +29,8 @@ class IncidentRepositoryTest {
     @Test
     void savesIncidentWithRuleAndMetricSnapshot() {
         DetectionRule rule = detectionRuleRepository.save(new DetectionRule(
-            "Orders daily count drop",
-            "orders",
+            "Treatment records daily volume drop",
+            "treatment_records",
             MetricType.ROW_COUNT,
             ThresholdType.BELOW_RATIO,
             new BigDecimal("0.5000")
@@ -41,15 +41,15 @@ class IncidentRepositoryTest {
             "INC-20260913-001",
             rule,
             IncidentSeverity.CRITICAL,
-            "orders",
+            "treatment_records",
             AnomalyType.COUNT_DROP,
-            "Order ingestion volume dropped 72%",
+            "Treatment record intake volume dropped 72%",
             detectedAt
         ));
 
         metricSnapshotRepository.save(new IncidentMetricSnapshot(
             incident,
-            "orders.daily.count",
+            "treatment_records.daily.count",
             new BigDecimal("12000.0000"),
             new BigDecimal("3360.0000"),
             new BigDecimal("-72.0000"),
@@ -57,7 +57,7 @@ class IncidentRepositoryTest {
         ));
 
         assertThat(detectionRuleRepository.findByEnabledTrue()).hasSize(1);
-        assertThat(detectionRuleRepository.findByTargetTableAndEnabledTrue("orders")).hasSize(1);
+        assertThat(detectionRuleRepository.findByTargetTableAndEnabledTrue("treatment_records")).hasSize(1);
         assertThat(incidentRepository.findByIncidentNo("INC-20260913-001")).hasValueSatisfying(saved -> {
             assertThat(saved.getStatus()).isEqualTo(IncidentStatus.DETECTED);
             assertThat(saved.getSeverity()).isEqualTo(IncidentSeverity.CRITICAL);
@@ -70,8 +70,8 @@ class IncidentRepositoryTest {
     @Test
     void changesIncidentStatusDuringAnalysisLifecycle() {
         DetectionRule rule = detectionRuleRepository.save(new DetectionRule(
-            "Customer phone NULL spike",
-            "customers",
+            "Required field NULL spike",
+            "record_subjects",
             MetricType.NULL_RATIO,
             ThresholdType.ABOVE_RATIO,
             new BigDecimal("2.0000")
@@ -80,9 +80,9 @@ class IncidentRepositoryTest {
             "INC-20260913-002",
             rule,
             IncidentSeverity.WARNING,
-            "customers",
+            "record_subjects",
             AnomalyType.NULL_SPIKE,
-            "customer_phone NULL ratio increased",
+            "required_field_value NULL ratio increased",
             Instant.parse("2026-09-13T00:05:00Z")
         ));
 
