@@ -391,6 +391,14 @@ GET /api/incidents?from=2026-09-14&to=2026-09-14
 
 The list API returns incident summaries ordered by latest detection time and supports optional status and inclusive date-range filters.
 
+Implemented incident detail API:
+
+```text
+GET /api/incidents/{incidentNo}
+```
+
+The detail API returns the incident summary fields plus metric snapshots such as baseline value, current value, change rate, and measured time.
+
 ## 13. MVP Evaluation
 
 Metrics:

@@ -18,6 +18,8 @@ import com.opslens.domain.incident.AnomalyType;
 import com.opslens.domain.incident.DetectionRule;
 import com.opslens.domain.incident.DetectionRuleRepository;
 import com.opslens.domain.incident.Incident;
+import com.opslens.domain.incident.IncidentMetricSnapshot;
+import com.opslens.domain.incident.IncidentMetricSnapshotRepository;
 import com.opslens.domain.incident.IncidentRepository;
 import com.opslens.domain.incident.IncidentSeverity;
 import com.opslens.domain.incident.IncidentStatus;
@@ -37,6 +39,9 @@ class IncidentQueryServiceTest {
 
     @Autowired
     private IncidentRepository incidentRepository;
+
+    @Autowired
+    private IncidentMetricSnapshotRepository metricSnapshotRepository;
 
     @Autowired
     private IncidentQueryService incidentQueryService;
@@ -61,7 +66,7 @@ class IncidentQueryServiceTest {
             new BigDecimal("20.0000")
         ));
 
-        incidentRepository.save(new Incident(
+        Incident countDropIncident = incidentRepository.save(new Incident(
             "INC-20260913-VOLUME-DROP-INST_02",
             countDropRule,
             IncidentSeverity.CRITICAL,
@@ -69,6 +74,14 @@ class IncidentQueryServiceTest {
             "INST_02",
             AnomalyType.COUNT_DROP,
             "Treatment record count for INST_02 dropped.",
+            Instant.parse("2026-09-14T00:00:00Z")
+        ));
+        metricSnapshotRepository.save(new IncidentMetricSnapshot(
+            countDropIncident,
+            "treatment_records.daily.count.INST_02",
+            new BigDecimal("40.0000"),
+            new BigDecimal("8.0000"),
+            new BigDecimal("-80.0000"),
             Instant.parse("2026-09-14T00:00:00Z")
         ));
         Incident resolvedIncident = incidentRepository.save(new Incident(
@@ -116,5 +129,22 @@ class IncidentQueryServiceTest {
 
         assertThat(incidents).singleElement()
             .satisfies(incident -> assertThat(incident.incidentNo()).isEqualTo("INC-20260913-VOLUME-DROP-INST_02"));
+    }
+
+    @Test
+    void returnsIncidentDetailWithMetricSnapshots() {
+        var detail = incidentQueryService.getIncident("INC-20260913-VOLUME-DROP-INST_02");
+
+        assertThat(detail.incidentNo()).isEqualTo("INC-20260913-VOLUME-DROP-INST_02");
+        assertThat(detail.severity()).isEqualTo(IncidentSeverity.CRITICAL);
+        assertThat(detail.targetInstitutionCode()).isEqualTo("INST_02");
+        assertThat(detail.detectionRuleName()).isEqualTo("Treatment records daily volume drop");
+        assertThat(detail.metricSnapshots()).singleElement()
+            .satisfies(metricSnapshot -> {
+                assertThat(metricSnapshot.metricName()).isEqualTo("treatment_records.daily.count.INST_02");
+                assertThat(metricSnapshot.baselineValue()).isEqualByComparingTo("40.0000");
+                assertThat(metricSnapshot.currentValue()).isEqualByComparingTo("8.0000");
+                assertThat(metricSnapshot.changeRate()).isEqualByComparingTo("-80.0000");
+            });
     }
 }

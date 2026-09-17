@@ -1,5 +1,6 @@
 package com.opslens.application.incident;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
@@ -10,6 +11,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.opslens.domain.incident.AnomalyType;
 import com.opslens.domain.incident.Incident;
+import com.opslens.domain.incident.IncidentMetricSnapshot;
+import com.opslens.domain.incident.IncidentMetricSnapshotRepository;
 import com.opslens.domain.incident.IncidentRepository;
 import com.opslens.domain.incident.IncidentSeverity;
 import com.opslens.domain.incident.IncidentStatus;
@@ -18,9 +21,14 @@ import com.opslens.domain.incident.IncidentStatus;
 public class IncidentQueryService {
 
     private final IncidentRepository incidentRepository;
+    private final IncidentMetricSnapshotRepository metricSnapshotRepository;
 
-    public IncidentQueryService(IncidentRepository incidentRepository) {
+    public IncidentQueryService(
+        IncidentRepository incidentRepository,
+        IncidentMetricSnapshotRepository metricSnapshotRepository
+    ) {
         this.incidentRepository = incidentRepository;
+        this.metricSnapshotRepository = metricSnapshotRepository;
     }
 
     @Transactional(readOnly = true)
@@ -30,6 +38,16 @@ public class IncidentQueryService {
         return incidents.stream()
             .map(IncidentSummary::from)
             .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public IncidentDetail getIncident(String incidentNo) {
+        Incident incident = incidentRepository.findByIncidentNo(incidentNo)
+            .orElseThrow(() -> new IncidentNotFoundException(incidentNo));
+        List<MetricSnapshot> metricSnapshots = metricSnapshotRepository.findByIncidentOrderByMeasuredAtAsc(incident).stream()
+            .map(MetricSnapshot::from)
+            .toList();
+        return IncidentDetail.from(incident, metricSnapshots);
     }
 
     private List<Incident> findByQuery(IncidentQuery query) {
@@ -105,6 +123,63 @@ public class IncidentQueryService {
                 incident.getDetectedAt(),
                 incident.getResolvedAt(),
                 detectionRuleName
+            );
+        }
+    }
+
+    public record IncidentDetail(
+        Long id,
+        String incidentNo,
+        IncidentSeverity severity,
+        IncidentStatus status,
+        String targetTable,
+        String targetInstitutionCode,
+        AnomalyType anomalyType,
+        String summary,
+        Instant detectedAt,
+        Instant resolvedAt,
+        String detectionRuleName,
+        List<MetricSnapshot> metricSnapshots
+    ) {
+
+        private static IncidentDetail from(Incident incident, List<MetricSnapshot> metricSnapshots) {
+            String detectionRuleName = incident.getDetectionRule() == null
+                ? null
+                : incident.getDetectionRule().getName();
+            return new IncidentDetail(
+                incident.getId(),
+                incident.getIncidentNo(),
+                incident.getSeverity(),
+                incident.getStatus(),
+                incident.getTargetTable(),
+                incident.getTargetInstitutionCode(),
+                incident.getAnomalyType(),
+                incident.getSummary(),
+                incident.getDetectedAt(),
+                incident.getResolvedAt(),
+                detectionRuleName,
+                metricSnapshots
+            );
+        }
+    }
+
+    public record MetricSnapshot(
+        Long id,
+        String metricName,
+        BigDecimal baselineValue,
+        BigDecimal currentValue,
+        BigDecimal changeRate,
+        Instant measuredAt
+    ) {
+
+        private static MetricSnapshot from(IncidentMetricSnapshot metricSnapshot) {
+            return new MetricSnapshot(
+                metricSnapshot.getId(),
+                metricSnapshot.getMetricName(),
+                metricSnapshot.getBaselineValue(),
+                metricSnapshot.getCurrentValue(),
+                metricSnapshot.getChangeRate(),
+                metricSnapshot.getMeasuredAt()
             );
         }
     }

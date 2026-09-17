@@ -143,3 +143,9 @@ List detected incidents:
 ```bash
 curl "http://localhost:8080/api/incidents?status=DETECTED&from=2026-09-14&to=2026-09-14"
 ```
+
+Get incident detail:
+
+```bash
+curl "http://localhost:8080/api/incidents/INC-20260913-SOURCE-MISSING-INST_02"
+```
