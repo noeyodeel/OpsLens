@@ -399,6 +399,13 @@ GET /api/incidents/{incidentNo}
 
 The detail API returns the incident summary fields plus metric snapshots such as baseline value, current value, change rate, and measured time.
 
+Implemented dashboard UI:
+
+- React dashboard fetches incident summaries from `GET /api/incidents`.
+- Users can filter by incident status.
+- Users can trigger detection from the dashboard through `POST /api/incidents/detect`.
+- The visual style is intentionally simple and operations-focused so the MVP emphasizes detection and analysis flow rather than decorative UI.
+
 ## 13. MVP Evaluation
 
 Metrics:
