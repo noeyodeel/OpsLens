@@ -17,10 +17,12 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-import com.opslens.application.detection.VolumeDropDetectionService;
-import com.opslens.application.detection.VolumeDropDetectionService.VolumeDropDetectionResult;
+import com.opslens.application.detection.DuplicateRecordKeyDetectionService;
+import com.opslens.application.detection.DuplicateRecordKeyDetectionService.DuplicateRecordKeyDetectionResult;
 import com.opslens.application.detection.RequiredFieldNullSpikeDetectionService;
 import com.opslens.application.detection.RequiredFieldNullSpikeDetectionService.RequiredFieldNullSpikeDetectionResult;
+import com.opslens.application.detection.VolumeDropDetectionService;
+import com.opslens.application.detection.VolumeDropDetectionService.VolumeDropDetectionResult;
 
 @WebMvcTest(IncidentDetectionController.class)
 class IncidentDetectionControllerTest {
@@ -33,6 +35,9 @@ class IncidentDetectionControllerTest {
 
     @MockitoBean
     private RequiredFieldNullSpikeDetectionService requiredFieldNullSpikeDetectionService;
+
+    @MockitoBean
+    private DuplicateRecordKeyDetectionService duplicateRecordKeyDetectionService;
 
     @Test
     void detectsVolumeDropIncidents() throws Exception {
@@ -58,6 +63,16 @@ class IncidentDetectionControllerTest {
                 true,
                 "INC-20260913-NULL-SPIKE-INST_03"
             )));
+        when(duplicateRecordKeyDetectionService.detect(any()))
+            .thenReturn(List.of(new DuplicateRecordKeyDetectionResult(
+                "INST_01",
+                LocalDate.of(2026, 9, 13),
+                new BigDecimal("0.0000"),
+                new BigDecimal("9.0000"),
+                new BigDecimal("9.0000"),
+                true,
+                "INC-20260913-DUPLICATE-KEY-INST_01"
+            )));
 
         mockMvc.perform(post("/api/incidents/detect")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -81,6 +96,12 @@ class IncidentDetectionControllerTest {
             .andExpect(jsonPath("$[1].targetTable").value("record_subjects"))
             .andExpect(jsonPath("$[1].baselineValue").value(0.0000))
             .andExpect(jsonPath("$[1].currentValue").value(80.0000))
-            .andExpect(jsonPath("$[1].incidentNo").value("INC-20260913-NULL-SPIKE-INST_03"));
+            .andExpect(jsonPath("$[1].incidentNo").value("INC-20260913-NULL-SPIKE-INST_03"))
+            .andExpect(jsonPath("$[2].detectorType").value("DUPLICATE_RECORD_KEY"))
+            .andExpect(jsonPath("$[2].targetInstitutionCode").value("INST_01"))
+            .andExpect(jsonPath("$[2].targetTable").value("verification_records"))
+            .andExpect(jsonPath("$[2].baselineValue").value(0.0000))
+            .andExpect(jsonPath("$[2].currentValue").value(9.0000))
+            .andExpect(jsonPath("$[2].incidentNo").value("INC-20260913-DUPLICATE-KEY-INST_01"));
     }
 }

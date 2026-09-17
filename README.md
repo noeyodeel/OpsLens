@@ -135,3 +135,4 @@ The detection endpoint currently runs:
 
 - `VOLUME_DROP`: institution-level treatment record volume drop detection.
 - `REQUIRED_FIELD_NULL_SPIKE`: institution-level required field NULL ratio detection.
+- `DUPLICATE_RECORD_KEY`: institution-level duplicate verification record key detection.

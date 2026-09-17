@@ -120,6 +120,9 @@ Implemented detector:
 - Institution-level required field NULL spike detection checks the current NULL ratio of `record_subjects.required_field_value`.
 - A `NULL_SPIKE` incident is created when the current NULL ratio is greater than 20%.
 - In the current synthetic data profile, the baseline required field NULL ratio is expected to be 0%, so the detector records the percentage-point increase as the change rate.
+- Institution-level duplicate key detection checks whether multiple `verification_records` rows share the same `verification_record_key`.
+- A `DUPLICATE_DETECTED` incident is created when the duplicate row count is greater than zero.
+- The duplicate detector records the duplicate row count as an `incident_metric_snapshot` so repeated detection can be validated without creating duplicate incidents.
 
 ## 5. AI Agent Input and Output
 
@@ -372,7 +375,7 @@ Implemented detection API:
 POST /api/incidents/detect
 ```
 
-The current MVP implementation detects `COUNT_DROP` incidents for the `treatment_records` table and `NULL_SPIKE` incidents for `record_subjects.required_field_value`.
+The current MVP implementation detects `COUNT_DROP` incidents for the `treatment_records` table, `NULL_SPIKE` incidents for `record_subjects.required_field_value`, and `DUPLICATE_DETECTED` incidents for `verification_records.verification_record_key`.
 
 ## 13. MVP Evaluation
 
@@ -409,7 +412,7 @@ Small independently testable tasks:
 6. Implement scenario table, supported scenario API, and anomaly injection service.
 7. Implement volume drop detection.
 8. Implement required field NULL spike detection.
-9. Implement duplicate detection.
+9. Implement duplicate record key detection.
 10. Implement institution missing detection.
 11. Implement incident list API.
 12. Implement incident detail API.
