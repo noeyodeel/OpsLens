@@ -407,6 +407,14 @@ GET /api/incidents/{incidentNo}/ai-context
 
 The context builder returns bounded incident facts, metric evidence, related ingestion logs, schema hints, and safety rules. It does not expose unrestricted database access or raw treatment data to the AI layer.
 
+Implemented mock LLM adapter:
+
+```text
+POST /api/incidents/{incidentNo}/analyze
+```
+
+The mock adapter uses the bounded AI context and returns structured analysis output: summary, impact scope, suspected causes, verification SQL, and additional checks. This keeps the application contract stable before wiring a real LLM API.
+
 Implemented dashboard UI:
 
 - React dashboard fetches incident summaries from `GET /api/incidents`.
