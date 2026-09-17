@@ -415,6 +415,14 @@ POST /api/incidents/{incidentNo}/analyze
 
 The mock adapter uses the bounded AI context and returns structured analysis output: summary, impact scope, suspected causes, verification SQL, and additional checks. This keeps the application contract stable before wiring a real LLM API.
 
+Implemented analysis persistence:
+
+```text
+GET /api/incidents/{incidentNo}/analysis
+```
+
+`POST /api/incidents/{incidentNo}/analyze` now stores the structured analysis result in `incident_analysis`, marks the incident as analyzed, and returns the stored analysis. The latest stored analysis can be fetched separately.
+
 Implemented dashboard UI:
 
 - React dashboard fetches incident summaries from `GET /api/incidents`.

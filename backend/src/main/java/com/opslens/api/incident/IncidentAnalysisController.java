@@ -2,14 +2,16 @@ package com.opslens.api.incident;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.opslens.application.analysis.IncidentAnalysisClient.IncidentAnalysisResult;
+import com.opslens.application.analysis.IncidentAnalysisNotFoundException;
 import com.opslens.application.analysis.IncidentAnalysisService;
+import com.opslens.application.analysis.IncidentAnalysisService.StoredIncidentAnalysis;
 import com.opslens.application.incident.IncidentNotFoundException;
 
 @RestController
@@ -23,12 +25,17 @@ public class IncidentAnalysisController {
     }
 
     @PostMapping("/{incidentNo}/analyze")
-    public IncidentAnalysisResult analyze(@PathVariable String incidentNo) {
+    public StoredIncidentAnalysis analyze(@PathVariable String incidentNo) {
         return incidentAnalysisService.analyze(incidentNo);
     }
 
-    @ExceptionHandler(IncidentNotFoundException.class)
+    @GetMapping("/{incidentNo}/analysis")
+    public StoredIncidentAnalysis analysis(@PathVariable String incidentNo) {
+        return incidentAnalysisService.getLatestAnalysis(incidentNo);
+    }
+
+    @ExceptionHandler({IncidentNotFoundException.class, IncidentAnalysisNotFoundException.class})
     @ResponseStatus(HttpStatus.NOT_FOUND)
-    public void handleIncidentNotFound() {
+    public void handleNotFound() {
     }
 }

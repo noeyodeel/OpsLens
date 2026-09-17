@@ -162,6 +162,12 @@ Run mock AI analysis:
 curl -X POST "http://localhost:8080/api/incidents/INC-20260913-SOURCE-MISSING-INST_02/analyze"
 ```
 
+Get latest stored analysis:
+
+```bash
+curl "http://localhost:8080/api/incidents/INC-20260913-SOURCE-MISSING-INST_02/analysis"
+```
+
 Frontend dashboard:
 
 - Shows incident summary counts and latest incident rows from `GET /api/incidents`.
