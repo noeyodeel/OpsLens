@@ -12,6 +12,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.opslens.domain.datasource.RecordSubject;
 import com.opslens.domain.datasource.RecordSubjectRepository;
+import com.opslens.domain.datasource.DataIngestionLog;
+import com.opslens.domain.datasource.DataIngestionLogRepository;
 import com.opslens.domain.datasource.TreatmentRecord;
 import com.opslens.domain.datasource.TreatmentRecordRepository;
 import com.opslens.domain.datasource.VerificationRecord;
@@ -33,6 +35,7 @@ public class ScenarioInjectionService {
     private final RecordSubjectRepository recordSubjectRepository;
     private final TreatmentRecordRepository treatmentRecordRepository;
     private final VerificationRecordRepository verificationRecordRepository;
+    private final DataIngestionLogRepository dataIngestionLogRepository;
     private final ScenarioRepository scenarioRepository;
     private final Clock clock;
 
@@ -41,12 +44,14 @@ public class ScenarioInjectionService {
         RecordSubjectRepository recordSubjectRepository,
         TreatmentRecordRepository treatmentRecordRepository,
         VerificationRecordRepository verificationRecordRepository,
+        DataIngestionLogRepository dataIngestionLogRepository,
         ScenarioRepository scenarioRepository
     ) {
         this.externalInstitutionRepository = externalInstitutionRepository;
         this.recordSubjectRepository = recordSubjectRepository;
         this.treatmentRecordRepository = treatmentRecordRepository;
         this.verificationRecordRepository = verificationRecordRepository;
+        this.dataIngestionLogRepository = dataIngestionLogRepository;
         this.scenarioRepository = scenarioRepository;
         this.clock = Clock.systemUTC();
     }
@@ -71,6 +76,12 @@ public class ScenarioInjectionService {
                 "Duplicate record key",
                 "Rewrites multiple verification records to share the same business record key.",
                 AnomalyType.DUPLICATE_DETECTED
+            ),
+            new ScenarioDefinition(
+                ScenarioType.INSTITUTION_DATA_MISSING,
+                "Institution data missing",
+                "Removes all treatment and verification records for an institution/date to simulate a missing institution transmission.",
+                AnomalyType.SOURCE_MISSING
             )
         );
     }
@@ -90,6 +101,7 @@ public class ScenarioInjectionService {
             case TREATMENT_RECORD_VOLUME_DROP -> injectTreatmentRecordVolumeDrop(externalInstitution, targetDate);
             case REQUIRED_FIELD_NULL_SPIKE -> injectRequiredFieldNullSpike(externalInstitution, targetDate);
             case DUPLICATE_RECORD_KEY -> injectDuplicateRecordKey(externalInstitution, targetDate);
+            case INSTITUTION_DATA_MISSING -> injectInstitutionDataMissing(externalInstitution, targetDate);
         };
 
         Scenario saved = scenarioRepository.save(scenario);
@@ -172,6 +184,31 @@ public class ScenarioInjectionService {
             affectedRows,
             AnomalyType.DUPLICATE_DETECTED,
             "Multiple verification records from %s share the same verification_record_key.".formatted(externalInstitution.getCode()),
+            Instant.now(clock)
+        );
+    }
+
+    private Scenario injectInstitutionDataMissing(ExternalInstitution externalInstitution, LocalDate targetDate) {
+        List<TreatmentRecord> treatmentRecordsToDelete = findTreatmentRecords(externalInstitution, targetDate);
+        List<VerificationRecord> verificationRecordsToDelete = verificationRecordRepository.findByTreatmentRecordIn(treatmentRecordsToDelete);
+        List<DataIngestionLog> ingestionLogsToDelete = dataIngestionLogRepository.findByExternalInstitutionAndTargetTableAndBatchDate(
+            externalInstitution,
+            "treatment_records",
+            targetDate
+        );
+
+        verificationRecordRepository.deleteAllInBatch(verificationRecordsToDelete);
+        treatmentRecordRepository.deleteAllInBatch(treatmentRecordsToDelete);
+        dataIngestionLogRepository.deleteAllInBatch(ingestionLogsToDelete);
+
+        return new Scenario(
+            "Institution data missing for " + externalInstitution.getCode(),
+            ScenarioType.INSTITUTION_DATA_MISSING,
+            externalInstitution.getCode(),
+            targetDate,
+            treatmentRecordsToDelete.size(),
+            AnomalyType.SOURCE_MISSING,
+            "No treatment records were received from %s for %s.".formatted(externalInstitution.getCode(), targetDate),
             Instant.now(clock)
         );
     }

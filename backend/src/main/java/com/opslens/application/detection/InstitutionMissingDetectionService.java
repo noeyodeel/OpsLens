@@ -11,9 +11,9 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.opslens.domain.datasource.TreatmentRecordRepository;
 import com.opslens.domain.datasource.ExternalInstitution;
 import com.opslens.domain.datasource.ExternalInstitutionRepository;
+import com.opslens.domain.datasource.TreatmentRecordRepository;
 import com.opslens.domain.incident.AnomalyType;
 import com.opslens.domain.incident.DetectionRule;
 import com.opslens.domain.incident.DetectionRuleRepository;
@@ -26,10 +26,10 @@ import com.opslens.domain.incident.MetricType;
 import com.opslens.domain.incident.ThresholdType;
 
 @Service
-public class VolumeDropDetectionService {
+public class InstitutionMissingDetectionService {
 
     private static final String TARGET_TABLE = "treatment_records";
-    private static final BigDecimal DEFAULT_THRESHOLD = new BigDecimal("0.5000");
+    private static final BigDecimal DEFAULT_THRESHOLD = new BigDecimal("0.0000");
     private static final LocalDate DEFAULT_TARGET_DATE = LocalDate.of(2026, 9, 13);
 
     private final ExternalInstitutionRepository externalInstitutionRepository;
@@ -38,7 +38,7 @@ public class VolumeDropDetectionService {
     private final IncidentRepository incidentRepository;
     private final IncidentMetricSnapshotRepository metricSnapshotRepository;
 
-    public VolumeDropDetectionService(
+    public InstitutionMissingDetectionService(
         ExternalInstitutionRepository externalInstitutionRepository,
         TreatmentRecordRepository treatmentRecordRepository,
         DetectionRuleRepository detectionRuleRepository,
@@ -53,37 +53,32 @@ public class VolumeDropDetectionService {
     }
 
     @Transactional
-    public List<VolumeDropDetectionResult> detect(VolumeDropDetectionCommand command) {
+    public List<InstitutionMissingDetectionResult> detect(InstitutionMissingDetectionCommand command) {
         LocalDate targetDate = command == null || command.targetDate() == null
             ? DEFAULT_TARGET_DATE
             : command.targetDate();
         DetectionRule rule = findOrCreateRule();
-        List<VolumeDropDetectionResult> results = new ArrayList<>();
+        List<InstitutionMissingDetectionResult> results = new ArrayList<>();
 
         for (ExternalInstitution externalInstitution : externalInstitutionRepository.findAll()) {
             if (!externalInstitution.isActive()) {
                 continue;
             }
 
-            CountMetrics metrics = countMetrics(externalInstitution, targetDate);
-            if (!metrics.hasBaseline()) {
-                results.add(VolumeDropDetectionResult.normal(externalInstitution.getCode(), targetDate, metrics));
-                continue;
-            }
-            if (metrics.currentCount().signum() == 0) {
-                results.add(VolumeDropDetectionResult.normal(externalInstitution.getCode(), targetDate, metrics));
-                continue;
-            }
-
-            BigDecimal thresholdCount = metrics.baselineAverage().multiply(rule.getThresholdValue());
-            boolean dropped = metrics.currentCount().compareTo(thresholdCount) < 0;
-            if (!dropped) {
-                results.add(VolumeDropDetectionResult.normal(externalInstitution.getCode(), targetDate, metrics));
+            MissingMetrics metrics = missingMetrics(externalInstitution, targetDate);
+            boolean missing = metrics.hasBaseline() && metrics.currentCount().signum() == 0;
+            if (!missing) {
+                results.add(InstitutionMissingDetectionResult.normal(externalInstitution.getCode(), targetDate, metrics));
                 continue;
             }
 
             Incident incident = createIncidentIfAbsent(externalInstitution, targetDate, rule, metrics);
-            results.add(VolumeDropDetectionResult.detected(externalInstitution.getCode(), targetDate, metrics, incident.getIncidentNo()));
+            results.add(InstitutionMissingDetectionResult.detected(
+                externalInstitution.getCode(),
+                targetDate,
+                metrics,
+                incident.getIncidentNo()
+            ));
         }
 
         return results;
@@ -93,19 +88,19 @@ public class VolumeDropDetectionService {
         return detectionRuleRepository
             .findFirstByTargetTableAndMetricTypeAndThresholdTypeAndEnabledTrue(
                 TARGET_TABLE,
-                MetricType.ROW_COUNT,
-                ThresholdType.BELOW_RATIO
+                MetricType.SOURCE_COUNT,
+                ThresholdType.EQUALS_ZERO
             )
             .orElseGet(() -> detectionRuleRepository.save(new DetectionRule(
-                "Treatment records daily volume drop",
+                "Institution daily data missing",
                 TARGET_TABLE,
-                MetricType.ROW_COUNT,
-                ThresholdType.BELOW_RATIO,
+                MetricType.SOURCE_COUNT,
+                ThresholdType.EQUALS_ZERO,
                 DEFAULT_THRESHOLD
             )));
     }
 
-    private CountMetrics countMetrics(ExternalInstitution externalInstitution, LocalDate targetDate) {
+    private MissingMetrics missingMetrics(ExternalInstitution externalInstitution, LocalDate targetDate) {
         long currentCount = treatmentRecordRepository.countByExternalInstitutionAndRecordedAtBetween(
             externalInstitution,
             startOfDay(targetDate),
@@ -126,19 +121,19 @@ public class VolumeDropDetectionService {
                 .multiply(BigDecimal.valueOf(100))
                 .setScale(4, RoundingMode.HALF_UP);
 
-        return new CountMetrics(baselineAverage, current, changeRate);
+        return new MissingMetrics(baselineAverage, current, changeRate);
     }
 
     private Incident createIncidentIfAbsent(
         ExternalInstitution externalInstitution,
         LocalDate targetDate,
         DetectionRule rule,
-        CountMetrics metrics
+        MissingMetrics metrics
     ) {
         Instant detectedAt = startOfDay(targetDate.plusDays(1));
         boolean alreadyExists = incidentRepository.existsByTargetTableAndAnomalyTypeAndTargetInstitutionCodeAndDetectedAtBetween(
             TARGET_TABLE,
-            AnomalyType.COUNT_DROP,
+            AnomalyType.SOURCE_MISSING,
             externalInstitution.getCode(),
             startOfDay(targetDate),
             startOfDay(targetDate.plusDays(2))
@@ -153,17 +148,16 @@ public class VolumeDropDetectionService {
             IncidentSeverity.CRITICAL,
             TARGET_TABLE,
             externalInstitution.getCode(),
-            AnomalyType.COUNT_DROP,
-            "Treatment record count for %s dropped from %s to %s.".formatted(
+            AnomalyType.SOURCE_MISSING,
+            "No treatment records were received from %s. Baseline average was %s.".formatted(
                 externalInstitution.getCode(),
-                metrics.baselineAverage().stripTrailingZeros().toPlainString(),
-                metrics.currentCount().stripTrailingZeros().toPlainString()
+                metrics.baselineAverage().stripTrailingZeros().toPlainString()
             ),
             detectedAt
         ));
         metricSnapshotRepository.save(new IncidentMetricSnapshot(
             incident,
-            "treatment_records.daily.count.%s".formatted(externalInstitution.getCode()),
+            "treatment_records.daily.source_missing.%s".formatted(externalInstitution.getCode()),
             metrics.baselineAverage(),
             metrics.currentCount(),
             metrics.changeRate(),
@@ -173,17 +167,17 @@ public class VolumeDropDetectionService {
     }
 
     private String incidentNo(ExternalInstitution externalInstitution, LocalDate targetDate) {
-        return "INC-%s-VOLUME-DROP-%s".formatted(targetDate.toString().replace("-", ""), externalInstitution.getCode());
+        return "INC-%s-SOURCE-MISSING-%s".formatted(targetDate.toString().replace("-", ""), externalInstitution.getCode());
     }
 
     private Instant startOfDay(LocalDate date) {
         return date.atStartOfDay().toInstant(ZoneOffset.UTC);
     }
 
-    public record VolumeDropDetectionCommand(LocalDate targetDate) {
+    public record InstitutionMissingDetectionCommand(LocalDate targetDate) {
     }
 
-    public record VolumeDropDetectionResult(
+    public record InstitutionMissingDetectionResult(
         String targetInstitutionCode,
         LocalDate targetDate,
         BigDecimal baselineAverage,
@@ -193,8 +187,12 @@ public class VolumeDropDetectionService {
         String incidentNo
     ) {
 
-        private static VolumeDropDetectionResult normal(String institutionCode, LocalDate targetDate, CountMetrics metrics) {
-            return new VolumeDropDetectionResult(
+        private static InstitutionMissingDetectionResult normal(
+            String institutionCode,
+            LocalDate targetDate,
+            MissingMetrics metrics
+        ) {
+            return new InstitutionMissingDetectionResult(
                 institutionCode,
                 targetDate,
                 metrics.baselineAverage(),
@@ -205,13 +203,13 @@ public class VolumeDropDetectionService {
             );
         }
 
-        private static VolumeDropDetectionResult detected(
+        private static InstitutionMissingDetectionResult detected(
             String institutionCode,
             LocalDate targetDate,
-            CountMetrics metrics,
+            MissingMetrics metrics,
             String incidentNo
         ) {
-            return new VolumeDropDetectionResult(
+            return new InstitutionMissingDetectionResult(
                 institutionCode,
                 targetDate,
                 metrics.baselineAverage(),
@@ -223,7 +221,7 @@ public class VolumeDropDetectionService {
         }
     }
 
-    private record CountMetrics(
+    private record MissingMetrics(
         BigDecimal baselineAverage,
         BigDecimal currentCount,
         BigDecimal changeRate

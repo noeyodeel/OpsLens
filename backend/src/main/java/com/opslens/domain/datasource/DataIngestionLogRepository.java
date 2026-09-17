@@ -8,4 +8,10 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface DataIngestionLogRepository extends JpaRepository<DataIngestionLog, Long> {
 
     List<DataIngestionLog> findByTargetTableAndBatchDate(String targetTable, LocalDate batchDate);
+
+    List<DataIngestionLog> findByExternalInstitutionAndTargetTableAndBatchDate(
+        ExternalInstitution externalInstitution,
+        String targetTable,
+        LocalDate batchDate
+    );
 }

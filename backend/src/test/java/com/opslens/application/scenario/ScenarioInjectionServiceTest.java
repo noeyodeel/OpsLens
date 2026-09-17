@@ -125,6 +125,24 @@ class ScenarioInjectionServiceTest {
         assertThat(verificationRecordRepository.findByVerificationRecordKey(duplicateVerificationRecordKey)).hasSize(2);
     }
 
+    @Test
+    void injectsInstitutionDataMissingScenario() {
+        assertThat(treatmentRecordsForTargetDate()).hasSize(10);
+        assertThat(verificationRecordsForTargetDate()).hasSize(10);
+
+        ScenarioInjectionResult result = scenarioInjectionService.inject(new ScenarioInjectionCommand(
+            ScenarioType.INSTITUTION_DATA_MISSING,
+            "INST_02",
+            BASE_DATE
+        ));
+
+        assertThat(result.scenarioType()).isEqualTo(ScenarioType.INSTITUTION_DATA_MISSING);
+        assertThat(result.expectedIncidentType()).isEqualTo(AnomalyType.SOURCE_MISSING);
+        assertThat(result.affectedRows()).isEqualTo(10);
+        assertThat(treatmentRecordsForTargetDate()).isEmpty();
+        assertThat(verificationRecordsForTargetDate()).isEmpty();
+    }
+
     private java.util.List<com.opslens.domain.datasource.TreatmentRecord> treatmentRecordsForTargetDate() {
         return treatmentRecordRepository.findByExternalInstitutionAndRecordedAtBetween(
             institution,

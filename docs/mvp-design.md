@@ -123,6 +123,9 @@ Implemented detector:
 - Institution-level duplicate key detection checks whether multiple `verification_records` rows share the same `verification_record_key`.
 - A `DUPLICATE_DETECTED` incident is created when the duplicate row count is greater than zero.
 - The duplicate detector records the duplicate row count as an `incident_metric_snapshot` so repeated detection can be validated without creating duplicate incidents.
+- Institution-level missing data detection checks whether an active external institution has a previous 7-day baseline but zero treatment records on the target date.
+- A `SOURCE_MISSING` incident is created when the current institution record count is zero.
+- Full missing data is handled separately from volume drop detection so a total non-receipt is classified as missing source data, while partial drops remain `COUNT_DROP`.
 
 ## 5. AI Agent Input and Output
 
@@ -352,6 +355,7 @@ Implemented MVP scenarios:
 - `TREATMENT_RECORD_VOLUME_DROP`: removes 80% of treatment records and related verification records for an institution/date.
 - `REQUIRED_FIELD_NULL_SPIKE`: clears required field values for 80% of record subjects in an external institution.
 - `DUPLICATE_RECORD_KEY`: rewrites multiple verification records to share the same `verification_record_key`.
+- `INSTITUTION_DATA_MISSING`: removes all treatment and verification records for an institution/date to simulate a full missing transmission.
 
 Each scenario stores:
 
@@ -375,7 +379,7 @@ Implemented detection API:
 POST /api/incidents/detect
 ```
 
-The current MVP implementation detects `COUNT_DROP` incidents for the `treatment_records` table, `NULL_SPIKE` incidents for `record_subjects.required_field_value`, and `DUPLICATE_DETECTED` incidents for `verification_records.verification_record_key`.
+The current MVP implementation detects `COUNT_DROP` incidents for the `treatment_records` table, `NULL_SPIKE` incidents for `record_subjects.required_field_value`, `DUPLICATE_DETECTED` incidents for `verification_records.verification_record_key`, and `SOURCE_MISSING` incidents for institution-level missing treatment record transmissions.
 
 ## 13. MVP Evaluation
 

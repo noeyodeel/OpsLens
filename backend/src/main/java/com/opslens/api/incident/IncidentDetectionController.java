@@ -12,6 +12,9 @@ import org.springframework.web.bind.annotation.RestController;
 import com.opslens.application.detection.DuplicateRecordKeyDetectionService;
 import com.opslens.application.detection.DuplicateRecordKeyDetectionService.DuplicateRecordKeyDetectionCommand;
 import com.opslens.application.detection.DuplicateRecordKeyDetectionService.DuplicateRecordKeyDetectionResult;
+import com.opslens.application.detection.InstitutionMissingDetectionService;
+import com.opslens.application.detection.InstitutionMissingDetectionService.InstitutionMissingDetectionCommand;
+import com.opslens.application.detection.InstitutionMissingDetectionService.InstitutionMissingDetectionResult;
 import com.opslens.application.detection.RequiredFieldNullSpikeDetectionService;
 import com.opslens.application.detection.RequiredFieldNullSpikeDetectionService.RequiredFieldNullSpikeDetectionCommand;
 import com.opslens.application.detection.RequiredFieldNullSpikeDetectionService.RequiredFieldNullSpikeDetectionResult;
@@ -26,15 +29,18 @@ public class IncidentDetectionController {
     private final VolumeDropDetectionService volumeDropDetectionService;
     private final RequiredFieldNullSpikeDetectionService requiredFieldNullSpikeDetectionService;
     private final DuplicateRecordKeyDetectionService duplicateRecordKeyDetectionService;
+    private final InstitutionMissingDetectionService institutionMissingDetectionService;
 
     public IncidentDetectionController(
         VolumeDropDetectionService volumeDropDetectionService,
         RequiredFieldNullSpikeDetectionService requiredFieldNullSpikeDetectionService,
-        DuplicateRecordKeyDetectionService duplicateRecordKeyDetectionService
+        DuplicateRecordKeyDetectionService duplicateRecordKeyDetectionService,
+        InstitutionMissingDetectionService institutionMissingDetectionService
     ) {
         this.volumeDropDetectionService = volumeDropDetectionService;
         this.requiredFieldNullSpikeDetectionService = requiredFieldNullSpikeDetectionService;
         this.duplicateRecordKeyDetectionService = duplicateRecordKeyDetectionService;
+        this.institutionMissingDetectionService = institutionMissingDetectionService;
     }
 
     @PostMapping("/detect")
@@ -48,6 +54,9 @@ public class IncidentDetectionController {
             .map(IncidentDetectionResult::from)
             .forEach(results::add);
         duplicateRecordKeyDetectionService.detect(safeRequest.toDuplicateRecordKeyCommand()).stream()
+            .map(IncidentDetectionResult::from)
+            .forEach(results::add);
+        institutionMissingDetectionService.detect(safeRequest.toInstitutionMissingCommand()).stream()
             .map(IncidentDetectionResult::from)
             .forEach(results::add);
         return results;
@@ -69,6 +78,10 @@ public class IncidentDetectionController {
 
         private DuplicateRecordKeyDetectionCommand toDuplicateRecordKeyCommand() {
             return new DuplicateRecordKeyDetectionCommand(targetDate);
+        }
+
+        private InstitutionMissingDetectionCommand toInstitutionMissingCommand() {
+            return new InstitutionMissingDetectionCommand(targetDate);
         }
     }
 
@@ -124,6 +137,21 @@ public class IncidentDetectionController {
                 "verification_record_key_duplicate_count",
                 result.baselineDuplicateCount(),
                 result.duplicateCount(),
+                result.changeRate(),
+                result.incidentCreated(),
+                result.incidentNo()
+            );
+        }
+
+        private static IncidentDetectionResult from(InstitutionMissingDetectionResult result) {
+            return new IncidentDetectionResult(
+                "INSTITUTION_DATA_MISSING",
+                result.targetInstitutionCode(),
+                result.targetDate(),
+                "treatment_records",
+                "institution_daily_record_count",
+                result.baselineAverage(),
+                result.currentCount(),
                 result.changeRate(),
                 result.incidentCreated(),
                 result.incidentNo()
