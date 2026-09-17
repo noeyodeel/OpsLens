@@ -33,31 +33,35 @@ public class IncidentAnalysisService {
     private final IncidentRepository incidentRepository;
     private final IncidentAnalysisRepository incidentAnalysisRepository;
     private final ObjectMapper objectMapper;
+    private final SqlSafetyValidator sqlSafetyValidator;
 
     public IncidentAnalysisService(
         AiIncidentContextBuilderService contextBuilderService,
         IncidentAnalysisClient incidentAnalysisClient,
         IncidentRepository incidentRepository,
         IncidentAnalysisRepository incidentAnalysisRepository,
-        ObjectMapper objectMapper
+        ObjectMapper objectMapper,
+        SqlSafetyValidator sqlSafetyValidator
     ) {
         this.contextBuilderService = contextBuilderService;
         this.incidentAnalysisClient = incidentAnalysisClient;
         this.incidentRepository = incidentRepository;
         this.incidentAnalysisRepository = incidentAnalysisRepository;
         this.objectMapper = objectMapper;
+        this.sqlSafetyValidator = sqlSafetyValidator;
     }
 
     @Transactional
     public StoredIncidentAnalysis analyze(String incidentNo) {
         Incident incident = findIncident(incidentNo);
         IncidentAnalysisResult result = incidentAnalysisClient.analyze(contextBuilderService.buildContext(incidentNo));
+        List<VerificationSql> checkedVerificationSql = sqlSafetyValidator.validateAll(result.verificationSql());
         IncidentAnalysis analysis = incidentAnalysisRepository.save(new IncidentAnalysis(
             incident,
             result.summary(),
             result.impactScope(),
             writeJson(result.suspectedCauses()),
-            writeJson(result.verificationSql()),
+            writeJson(checkedVerificationSql),
             writeJson(result.additionalChecks()),
             result.mock(),
             Instant.now()

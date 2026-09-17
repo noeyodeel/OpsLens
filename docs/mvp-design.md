@@ -192,6 +192,13 @@ Safety rules:
 - SQL is stored for developer review before execution.
 - Production data modification is outside MVP scope.
 
+Implemented SQL safety validation:
+
+- `SqlSafetyValidator` checks generated verification SQL before analysis results are stored.
+- Single `SELECT` or `WITH` queries are allowed.
+- Multiple statements, data-changing statements, administrative statements, and `SELECT ... FOR UPDATE` are marked unsafe.
+- Stored verification SQL includes `safe` and `safetyMessage` fields for developer review.
+
 Backend components:
 
 - `AiContextBuilder`

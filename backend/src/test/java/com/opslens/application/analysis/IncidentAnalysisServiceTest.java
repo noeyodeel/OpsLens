@@ -50,7 +50,8 @@ class IncidentAnalysisServiceTest {
             incidentAnalysisClient,
             incidentRepository,
             incidentAnalysisRepository,
-            objectMapper
+            objectMapper,
+            new SqlSafetyValidator()
         );
         Incident incident = new Incident(
             "INC-1",
@@ -84,7 +85,11 @@ class IncidentAnalysisServiceTest {
         assertThat(result.suspectedCauses()).singleElement()
             .satisfies(cause -> assertThat(cause.cause()).isEqualTo("cause"));
         assertThat(result.verificationSql()).singleElement()
-            .satisfies(sql -> assertThat(sql.sql()).isEqualTo("select 1"));
+            .satisfies(sql -> {
+                assertThat(sql.sql()).isEqualTo("select 1");
+                assertThat(sql.safe()).isTrue();
+                assertThat(sql.safetyMessage()).isEqualTo("SELECT-only verification SQL.");
+            });
         assertThat(incident.getStatus().name()).isEqualTo("ANALYZED");
         verify(contextBuilderService).buildContext("INC-1");
         verify(incidentAnalysisClient).analyze(context);

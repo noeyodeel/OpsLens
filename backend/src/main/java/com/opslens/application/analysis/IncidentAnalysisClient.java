@@ -30,7 +30,13 @@ public interface IncidentAnalysisClient {
     record VerificationSql(
         String title,
         String purpose,
-        String sql
+        String sql,
+        boolean safe,
+        String safetyMessage
     ) {
+
+        public VerificationSql(String title, String purpose, String sql) {
+            this(title, purpose, sql, true, "SQL safety check has not run yet.");
+        }
     }
 }

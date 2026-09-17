@@ -168,6 +168,8 @@ Get latest stored analysis:
 curl "http://localhost:8080/api/incidents/INC-20260913-SOURCE-MISSING-INST_02/analysis"
 ```
 
+Stored verification SQL includes `safe` and `safetyMessage` fields from the SELECT-only safety validator.
+
 Frontend dashboard:
 
 - Shows incident summary counts and latest incident rows from `GET /api/incidents`.

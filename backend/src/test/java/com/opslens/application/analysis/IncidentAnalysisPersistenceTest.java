@@ -29,6 +29,7 @@ import com.opslens.domain.incident.ThresholdType;
     IncidentAnalysisService.class,
     AiIncidentContextBuilderService.class,
     MockIncidentAnalysisClient.class,
+    SqlSafetyValidator.class,
     ObjectMapper.class
 })
 @TestPropertySource(properties = {
@@ -84,6 +85,7 @@ class IncidentAnalysisPersistenceTest {
         assertThat(stored.summary()).contains("No treatment records");
         assertThat(stored.suspectedCauses()).isNotEmpty();
         assertThat(stored.verificationSql()).isNotEmpty();
+        assertThat(stored.verificationSql()).allSatisfy(sql -> assertThat(sql.safe()).isTrue());
         assertThat(stored.mock()).isTrue();
         assertThat(incidentAnalysisRepository.findAll()).hasSize(1);
         assertThat(incidentRepository.findById(incident.getId()).orElseThrow().getStatus().name()).isEqualTo("ANALYZED");
