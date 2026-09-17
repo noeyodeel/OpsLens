@@ -381,6 +381,16 @@ POST /api/incidents/detect
 
 The current MVP implementation detects `COUNT_DROP` incidents for the `treatment_records` table, `NULL_SPIKE` incidents for `record_subjects.required_field_value`, `DUPLICATE_DETECTED` incidents for `verification_records.verification_record_key`, and `SOURCE_MISSING` incidents for institution-level missing treatment record transmissions.
 
+Implemented incident list API:
+
+```text
+GET /api/incidents
+GET /api/incidents?status=DETECTED
+GET /api/incidents?from=2026-09-14&to=2026-09-14
+```
+
+The list API returns incident summaries ordered by latest detection time and supports optional status and inclusive date-range filters.
+
 ## 13. MVP Evaluation
 
 Metrics:

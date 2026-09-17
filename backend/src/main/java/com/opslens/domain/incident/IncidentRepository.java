@@ -10,9 +10,17 @@ public interface IncidentRepository extends JpaRepository<Incident, Long> {
 
     Optional<Incident> findByIncidentNo(String incidentNo);
 
+    List<Incident> findAllByOrderByDetectedAtDesc();
+
     List<Incident> findByStatusOrderByDetectedAtDesc(IncidentStatus status);
 
     List<Incident> findByDetectedAtBetweenOrderByDetectedAtDesc(Instant from, Instant to);
+
+    List<Incident> findByStatusAndDetectedAtBetweenOrderByDetectedAtDesc(
+        IncidentStatus status,
+        Instant from,
+        Instant to
+    );
 
     boolean existsByTargetTableAndAnomalyTypeAndTargetInstitutionCodeAndDetectedAtBetween(
         String targetTable,

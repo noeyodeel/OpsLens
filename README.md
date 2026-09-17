@@ -137,3 +137,9 @@ The detection endpoint currently runs:
 - `REQUIRED_FIELD_NULL_SPIKE`: institution-level required field NULL ratio detection.
 - `DUPLICATE_RECORD_KEY`: institution-level duplicate verification record key detection.
 - `INSTITUTION_DATA_MISSING`: institution-level missing treatment record transmission detection.
+
+List detected incidents:
+
+```bash
+curl "http://localhost:8080/api/incidents?status=DETECTED&from=2026-09-14&to=2026-09-14"
+```
