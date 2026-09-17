@@ -12,6 +12,8 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.http.HttpStatus;
 
+import com.opslens.application.analysis.AiIncidentContextBuilderService;
+import com.opslens.application.analysis.AiIncidentContextBuilderService.AiIncidentContext;
 import com.opslens.application.incident.IncidentQueryService;
 import com.opslens.application.incident.IncidentQueryService.IncidentDetail;
 import com.opslens.application.incident.IncidentQueryService.IncidentQuery;
@@ -24,9 +26,14 @@ import com.opslens.domain.incident.IncidentStatus;
 public class IncidentQueryController {
 
     private final IncidentQueryService incidentQueryService;
+    private final AiIncidentContextBuilderService aiIncidentContextBuilderService;
 
-    public IncidentQueryController(IncidentQueryService incidentQueryService) {
+    public IncidentQueryController(
+        IncidentQueryService incidentQueryService,
+        AiIncidentContextBuilderService aiIncidentContextBuilderService
+    ) {
         this.incidentQueryService = incidentQueryService;
+        this.aiIncidentContextBuilderService = aiIncidentContextBuilderService;
     }
 
     @GetMapping
@@ -41,6 +48,11 @@ public class IncidentQueryController {
     @GetMapping("/{incidentNo}")
     public IncidentDetail incident(@PathVariable String incidentNo) {
         return incidentQueryService.getIncident(incidentNo);
+    }
+
+    @GetMapping("/{incidentNo}/ai-context")
+    public AiIncidentContext aiContext(@PathVariable String incidentNo) {
+        return aiIncidentContextBuilderService.buildContext(incidentNo);
     }
 
     @ExceptionHandler(IncidentNotFoundException.class)

@@ -399,6 +399,14 @@ GET /api/incidents/{incidentNo}
 
 The detail API returns the incident summary fields plus metric snapshots such as baseline value, current value, change rate, and measured time.
 
+Implemented AI context builder:
+
+```text
+GET /api/incidents/{incidentNo}/ai-context
+```
+
+The context builder returns bounded incident facts, metric evidence, related ingestion logs, schema hints, and safety rules. It does not expose unrestricted database access or raw treatment data to the AI layer.
+
 Implemented dashboard UI:
 
 - React dashboard fetches incident summaries from `GET /api/incidents`.
