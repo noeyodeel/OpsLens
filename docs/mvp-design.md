@@ -403,6 +403,7 @@ Implemented dashboard UI:
 
 - React dashboard fetches incident summaries from `GET /api/incidents`.
 - Users can filter by incident status.
+- Users can select an incident and view its detail fields and metric snapshots from `GET /api/incidents/{incidentNo}`.
 - Users can trigger detection from the dashboard through `POST /api/incidents/detect`.
 - The visual style is intentionally simple and operations-focused so the MVP emphasizes detection and analysis flow rather than decorative UI.
 
