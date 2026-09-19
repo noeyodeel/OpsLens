@@ -37,22 +37,22 @@ public class SqlSafetyValidator {
 
     private SafetyDecision decide(String sql) {
         if (sql == null || sql.isBlank()) {
-            return SafetyDecision.unsafe("SQL is blank.");
+            return SafetyDecision.unsafe("SQL이 비어 있습니다.");
         }
 
         String normalized = stripComments(sql).trim();
         String lower = normalized.toLowerCase(Locale.ROOT);
         if (!lower.startsWith("select") && !lower.startsWith("with")) {
-            return SafetyDecision.unsafe("Only SELECT queries are allowed.");
+            return SafetyDecision.unsafe("SELECT 또는 WITH 조회 쿼리만 허용됩니다.");
         }
         if (hasMultipleStatements(normalized)) {
-            return SafetyDecision.unsafe("Multiple SQL statements are not allowed.");
+            return SafetyDecision.unsafe("여러 SQL 문을 한 번에 실행할 수 없습니다.");
         }
         if (FOR_UPDATE.matcher(lower).find()) {
-            return SafetyDecision.unsafe("SELECT ... FOR UPDATE is not allowed.");
+            return SafetyDecision.unsafe("SELECT ... FOR UPDATE 구문은 허용되지 않습니다.");
         }
         if (FORBIDDEN_KEYWORDS.matcher(lower).find()) {
-            return SafetyDecision.unsafe("SQL contains a forbidden data-changing or administrative keyword.");
+            return SafetyDecision.unsafe("데이터 변경 또는 관리 작업 키워드가 포함되어 있습니다.");
         }
         return SafetyDecision.allowed();
     }
@@ -71,7 +71,7 @@ public class SqlSafetyValidator {
     private record SafetyDecision(boolean safe, String message) {
 
         private static SafetyDecision allowed() {
-            return new SafetyDecision(true, "SELECT-only verification SQL.");
+            return new SafetyDecision(true, "조회 전용 검증 SQL입니다.");
         }
 
         private static SafetyDecision unsafe(String message) {

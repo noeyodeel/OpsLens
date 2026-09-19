@@ -58,7 +58,7 @@ class IncidentAnalysisPersistenceTest {
     @BeforeEach
     void setUp() {
         DetectionRule rule = detectionRuleRepository.save(new DetectionRule(
-            "Institution daily data missing",
+            "기관 일별 전송 데이터 미수신",
             "treatment_records",
             MetricType.SOURCE_COUNT,
             ThresholdType.EQUALS_ZERO,
@@ -71,7 +71,7 @@ class IncidentAnalysisPersistenceTest {
             "treatment_records",
             "INST_02",
             AnomalyType.SOURCE_MISSING,
-            "No treatment records were received from INST_02.",
+            "INST_02 기관의 진료 전송 데이터가 수신되지 않았습니다.",
             Instant.parse("2026-09-14T00:00:00Z")
         ));
     }
@@ -82,7 +82,7 @@ class IncidentAnalysisPersistenceTest {
 
         assertThat(stored.id()).isNotNull();
         assertThat(stored.incidentNo()).isEqualTo("INC-20260913-SOURCE-MISSING-INST_02");
-        assertThat(stored.summary()).contains("No treatment records");
+        assertThat(stored.summary()).contains("진료 전송 데이터가 수신되지 않았습니다");
         assertThat(stored.suspectedCauses()).isNotEmpty();
         assertThat(stored.verificationSql()).isNotEmpty();
         assertThat(stored.verificationSql()).allSatisfy(sql -> assertThat(sql.safe()).isTrue());

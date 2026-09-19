@@ -77,7 +77,7 @@ public class IncidentReportService {
 
     private ReportDraft developerReport(Incident incident, StoredIncidentAnalysis analysis) {
         String causes = analysis.suspectedCauses().stream()
-            .map(cause -> "- #%d %s: %s (confidence %s)".formatted(
+            .map(cause -> "- #%d %s: %s (신뢰도 %s)".formatted(
                 cause.rank(),
                 cause.cause(),
                 cause.reason(),
@@ -87,7 +87,7 @@ public class IncidentReportService {
         String verificationSql = analysis.verificationSql().stream()
             .map(sql -> "- %s [%s]: %s\n```sql\n%s\n```".formatted(
                 sql.title(),
-                sql.safe() ? "SAFE" : "UNSAFE",
+                sql.safe() ? "안전" : "주의 필요",
                 sql.purpose(),
                 sql.sql()
             ))
@@ -97,29 +97,29 @@ public class IncidentReportService {
             .collect(Collectors.joining("\n"));
 
         String content = """
-            # Developer Incident Report
+            # 개발자용 인시던트 리포트
 
-            Incident: %s
-            Severity: %s
-            Status: %s
-            Target table: %s
-            Target institution: %s
-            Anomaly type: %s
-            Detected at: %s
+            인시던트: %s
+            심각도: %s
+            상태: %s
+            대상 테이블: %s
+            대상 기관: %s
+            이상 유형: %s
+            탐지 시각: %s
 
-            ## Analysis Summary
+            ## 분석 요약
             %s
 
-            ## Impact Scope
+            ## 영향 범위
             %s
 
-            ## Suspected Causes
+            ## 원인 후보
             %s
 
-            ## Verification SQL
+            ## 검증 SQL
             %s
 
-            ## Additional Checks
+            ## 추가 확인 사항
             %s
             """.formatted(
             incident.getIncidentNo(),
@@ -135,40 +135,40 @@ public class IncidentReportService {
             emptyFallback(verificationSql),
             emptyFallback(checks)
         ).strip();
-        return new ReportDraft("Developer report - %s".formatted(incident.getIncidentNo()), content);
+        return new ReportDraft("개발자용 리포트 - %s".formatted(incident.getIncidentNo()), content);
     }
 
     private ReportDraft businessReport(Incident incident, StoredIncidentAnalysis analysis) {
         String mainCause = analysis.suspectedCauses().isEmpty()
-            ? "The likely cause is still being checked."
+            ? "가능성이 높은 원인을 확인 중입니다."
             : analysis.suspectedCauses().get(0).cause();
         String checks = analysis.additionalChecks().stream()
             .map("- %s"::formatted)
             .collect(Collectors.joining("\n"));
         String content = """
-            # Business Incident Report
+            # 업무 담당자용 인시던트 리포트
 
-            ## What Happened
+            ## 현재 발생한 문제
             %s
 
-            ## Expected Business Impact
+            ## 예상 업무 영향
             %s
 
-            ## Current Understanding
-            The current top candidate is: %s.
+            ## 현재 파악된 내용
+            현재 가장 가능성이 높은 원인 후보는 "%s"입니다.
 
-            ## What Is Being Checked
+            ## 확인 중인 사항
             %s
 
-            ## Current Status
-            The incident is under developer review. No production data changes are performed automatically.
+            ## 현재 상태
+            개발자가 원인과 영향 범위를 검토 중입니다. 운영 데이터 변경은 자동으로 수행되지 않습니다.
             """.formatted(
             analysis.summary(),
             analysis.impactScope(),
             mainCause,
             emptyFallback(checks)
         ).strip();
-        return new ReportDraft("Business report - %s".formatted(incident.getIncidentNo()), content);
+        return new ReportDraft("업무 담당자용 리포트 - %s".formatted(incident.getIncidentNo()), content);
     }
 
     private String institutionCode(Incident incident) {
@@ -176,7 +176,7 @@ public class IncidentReportService {
     }
 
     private String emptyFallback(String value) {
-        return value == null || value.isBlank() ? "- No item recorded." : value;
+        return value == null || value.isBlank() ? "- 기록된 항목이 없습니다." : value;
     }
 
     private record ReportDraft(String title, String content) {

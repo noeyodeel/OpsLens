@@ -28,12 +28,12 @@ class MockIncidentAnalysisClientTest {
         var result = client.analyze(context(AnomalyType.SOURCE_MISSING));
 
         assertThat(result.mock()).isTrue();
-        assertThat(result.summary()).contains("No treatment records");
+        assertThat(result.summary()).contains("진료 전송 데이터가 수신되지 않았습니다");
         assertThat(result.impactScope()).contains("INST_02");
         assertThat(result.suspectedCauses()).singleElement()
             .satisfies(cause -> {
                 assertThat(cause.rank()).isEqualTo(1);
-                assertThat(cause.cause()).contains("transmission");
+                assertThat(cause.cause()).contains("전송 실패");
                 assertThat(cause.confidence()).isEqualByComparingTo("0.8500");
             });
         assertThat(result.verificationSql()).hasSize(2);
@@ -41,7 +41,7 @@ class MockIncidentAnalysisClientTest {
             .contains("select")
             .contains("data_ingestion_log")
             .contains("ei.code = 'INST_02'");
-        assertThat(result.additionalChecks()).anyMatch(check -> check.contains("institution"));
+        assertThat(result.additionalChecks()).anyMatch(check -> check.contains("기관"));
     }
 
     @Test
@@ -67,11 +67,11 @@ class MockIncidentAnalysisClientTest {
                 "treatment_records",
                 "INST_02",
                 anomalyType,
-                "No treatment records were received from INST_02.",
+                "INST_02 기관의 진료 전송 데이터가 수신되지 않았습니다.",
                 LocalDate.of(2026, 9, 13),
                 Instant.parse("2026-09-14T00:00:00Z"),
                 null,
-                "Institution daily data missing",
+                "기관 일별 전송 데이터 미수신",
                 MetricType.SOURCE_COUNT,
                 ThresholdType.EQUALS_ZERO,
                 new BigDecimal("0.0000")

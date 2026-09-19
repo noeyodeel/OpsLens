@@ -21,7 +21,7 @@ class SqlSafetyValidatorTest {
         ));
 
         assertThat(checked.safe()).isTrue();
-        assertThat(checked.safetyMessage()).isEqualTo("SELECT-only verification SQL.");
+        assertThat(checked.safetyMessage()).isEqualTo("조회 전용 검증 SQL입니다.");
     }
 
     @Test
@@ -33,7 +33,7 @@ class SqlSafetyValidatorTest {
         ));
 
         assertThat(checked.safe()).isFalse();
-        assertThat(checked.safetyMessage()).isEqualTo("Only SELECT queries are allowed.");
+        assertThat(checked.safetyMessage()).isEqualTo("SELECT 또는 WITH 조회 쿼리만 허용됩니다.");
     }
 
     @Test
@@ -45,7 +45,7 @@ class SqlSafetyValidatorTest {
         ));
 
         assertThat(checked.safe()).isFalse();
-        assertThat(checked.safetyMessage()).isEqualTo("Multiple SQL statements are not allowed.");
+        assertThat(checked.safetyMessage()).isEqualTo("여러 SQL 문을 한 번에 실행할 수 없습니다.");
     }
 
     @Test
@@ -57,7 +57,7 @@ class SqlSafetyValidatorTest {
         ));
 
         assertThat(checked.safe()).isFalse();
-        assertThat(checked.safetyMessage()).isEqualTo("SELECT ... FOR UPDATE is not allowed.");
+        assertThat(checked.safetyMessage()).isEqualTo("SELECT ... FOR UPDATE 구문은 허용되지 않습니다.");
     }
 
     @Test

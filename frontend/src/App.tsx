@@ -111,7 +111,7 @@ function App() {
         return data[0]?.incidentNo ?? null
       })
     } catch {
-      setErrorMessage('Could not load incidents. Check that the backend server is running.')
+      setErrorMessage('인시던트 목록을 불러오지 못했습니다. 백엔드 서버 실행 상태를 확인해주세요.')
     } finally {
       setLoading(false)
     }
@@ -130,7 +130,7 @@ function App() {
       setIncidentDetail(data)
     } catch {
       setIncidentDetail(null)
-      setDetailErrorMessage('Could not load incident detail.')
+      setDetailErrorMessage('인시던트 상세 정보를 불러오지 못했습니다.')
     } finally {
       setDetailLoading(false)
     }
@@ -152,7 +152,7 @@ function App() {
       setAnalysis(data)
     } catch {
       setAnalysis(null)
-      setAnalysisErrorMessage('Could not load analysis result.')
+      setAnalysisErrorMessage('분석 결과를 불러오지 못했습니다.')
     }
   }
 
@@ -169,7 +169,7 @@ function App() {
       const data = (await response.json()) as IncidentReport
       setReports((current) => ({ ...current, [reportType]: data }))
     } catch {
-      setAnalysisErrorMessage(`Could not load ${reportType.toLowerCase()} report.`)
+      setAnalysisErrorMessage(`${formatReportType(reportType)} 리포트를 불러오지 못했습니다.`)
     }
   }
 
@@ -192,7 +192,7 @@ function App() {
       await loadIncidents()
       await loadIncidentDetail(selectedIncidentNo)
     } catch {
-      setAnalysisErrorMessage('Could not run AI analysis. Check that an incident is selected and backend is running.')
+      setAnalysisErrorMessage('AI 분석을 실행하지 못했습니다. 인시던트 선택 여부와 백엔드 서버 상태를 확인해주세요.')
     } finally {
       setAnalyzing(false)
     }
@@ -216,7 +216,7 @@ function App() {
       setReports((current) => ({ ...current, [reportType]: data }))
       setSelectedReportType(reportType)
     } catch {
-      setAnalysisErrorMessage('Could not generate report. Run analysis before generating reports.')
+      setAnalysisErrorMessage('리포트를 생성하지 못했습니다. 먼저 AI 분석을 실행해주세요.')
     } finally {
       setGeneratingReport(null)
     }
@@ -239,7 +239,7 @@ function App() {
       }
       await loadIncidents()
     } catch {
-      setErrorMessage('Could not run detection. Generate test data and check the backend status.')
+      setErrorMessage('이상 탐지를 실행하지 못했습니다. 테스트 데이터 생성 여부와 백엔드 상태를 확인해주세요.')
     } finally {
       setDetecting(false)
     }
@@ -277,32 +277,32 @@ function App() {
       <section className="top-bar">
         <div>
           <p className="eyebrow">OpsLens MVP</p>
-          <h1>Institution Data Incident Dashboard</h1>
+          <h1>기관 전송 데이터 인시던트 대시보드</h1>
           <p className="page-description">
-            Monitor external institution intake anomalies and inspect incident evidence.
+            외부 기관에서 수신된 진료 전송 데이터의 이상 징후와 분석 근거를 확인합니다.
           </p>
         </div>
         <div className="top-actions">
           <button type="button" className="secondary-button" onClick={loadIncidents} disabled={loading || detecting}>
-            Refresh
+            새로고침
           </button>
           <button type="button" onClick={runDetection} disabled={loading || detecting}>
-            {detecting ? 'Detecting' : 'Run Detection'}
+            {detecting ? '탐지 중' : '이상 탐지 실행'}
           </button>
         </div>
       </section>
 
-      <section className="summary-grid" aria-label="Incident summary">
+      <section className="summary-grid" aria-label="인시던트 요약">
         <article>
-          <span>Open incidents</span>
+          <span>미해결 인시던트</span>
           <strong>{summary.open}</strong>
         </article>
         <article>
-          <span>Critical</span>
+          <span>심각</span>
           <strong>{summary.critical}</strong>
         </article>
         <article>
-          <span>Institutions</span>
+          <span>영향 기관</span>
           <strong>{summary.institutions}</strong>
         </article>
       </section>
@@ -311,15 +311,15 @@ function App() {
         <section className="incident-panel">
           <div className="panel-heading">
             <div>
-              <h2>Incidents</h2>
-              <p>{selectedStatus === 'ALL' ? 'All statuses' : selectedStatus} sorted by latest detection</p>
+              <h2>인시던트 목록</h2>
+              <p>{selectedStatus === 'ALL' ? '전체 상태' : formatStatus(selectedStatus)} / 최근 탐지순</p>
             </div>
             <label className="filter-control">
-              <span>Status</span>
+              <span>상태</span>
               <select value={selectedStatus} onChange={(event) => setSelectedStatus(event.target.value as FilterStatus)}>
                 {statusOptions.map((status) => (
                   <option key={status} value={status}>
-                    {status}
+                    {status === 'ALL' ? '전체' : formatStatus(status)}
                   </option>
                 ))}
               </select>
@@ -327,9 +327,9 @@ function App() {
           </div>
 
           {errorMessage ? <div className="message error">{errorMessage}</div> : null}
-          {loading ? <div className="message">Loading incidents.</div> : null}
+          {loading ? <div className="message">인시던트 목록을 불러오는 중입니다.</div> : null}
           {!loading && !errorMessage && incidents.length === 0 ? (
-            <div className="message">No incidents to display. Generate test data, then run detection.</div>
+            <div className="message">표시할 인시던트가 없습니다. 테스트 데이터를 생성한 뒤 이상 탐지를 실행해주세요.</div>
           ) : null}
 
           {!loading && incidents.length > 0 ? (
@@ -341,7 +341,7 @@ function App() {
                   onClick={() => setSelectedIncidentNo(incident.incidentNo)}
                   type="button"
                 >
-                  <span className={`severity ${incident.severity.toLowerCase()}`}>{incident.severity}</span>
+                  <span className={`severity ${incident.severity.toLowerCase()}`}>{formatSeverity(incident.severity)}</span>
                   <span className="incident-main">
                     <strong>{incident.summary}</strong>
                     <span>
@@ -350,7 +350,7 @@ function App() {
                     </span>
                   </span>
                   <span className="incident-meta">
-                    <span className="row-status">{incident.status}</span>
+                    <span className="row-status">{formatStatus(incident.status)}</span>
                     <time dateTime={incident.detectedAt}>{formatDateTime(incident.detectedAt)}</time>
                   </span>
                 </button>
@@ -362,15 +362,15 @@ function App() {
         <section className="detail-panel">
           <div className="panel-heading">
             <div>
-              <h2>Incident Detail</h2>
-              <p>Evidence and measured values for the selected incident</p>
+              <h2>인시던트 상세</h2>
+              <p>선택한 인시던트의 근거 데이터와 측정값을 확인합니다.</p>
             </div>
           </div>
 
           {detailErrorMessage ? <div className="message error">{detailErrorMessage}</div> : null}
-          {detailLoading ? <div className="message">Loading detail.</div> : null}
+          {detailLoading ? <div className="message">상세 정보를 불러오는 중입니다.</div> : null}
           {!detailLoading && !incidentDetail && !detailErrorMessage ? (
-            <div className="message">Select an incident to view detail.</div>
+            <div className="message">상세 정보를 볼 인시던트를 선택해주세요.</div>
           ) : null}
 
           {!detailLoading && incidentDetail ? (
@@ -423,7 +423,7 @@ function IncidentDetailView({
   return (
     <div className="detail-content">
       <div className="detail-title-row">
-        <span className={`severity ${incident.severity.toLowerCase()}`}>{incident.severity}</span>
+        <span className={`severity ${incident.severity.toLowerCase()}`}>{formatSeverity(incident.severity)}</span>
         <div>
           <strong>{incident.incidentNo}</strong>
           <p>{incident.summary}</p>
@@ -432,35 +432,35 @@ function IncidentDetailView({
 
       <dl className="detail-grid">
         <div>
-          <dt>Status</dt>
-          <dd>{incident.status}</dd>
+          <dt>상태</dt>
+          <dd>{formatStatus(incident.status)}</dd>
         </div>
         <div>
-          <dt>Anomaly</dt>
+          <dt>이상 유형</dt>
           <dd>{incident.anomalyType}</dd>
         </div>
         <div>
-          <dt>Institution</dt>
+          <dt>기관</dt>
           <dd>{incident.targetInstitutionCode ?? '-'}</dd>
         </div>
         <div>
-          <dt>Target table</dt>
+          <dt>대상 테이블</dt>
           <dd>{incident.targetTable}</dd>
         </div>
         <div>
-          <dt>Rule</dt>
+          <dt>탐지 규칙</dt>
           <dd>{incident.detectionRuleName ?? '-'}</dd>
         </div>
         <div>
-          <dt>Detected</dt>
+          <dt>탐지 시각</dt>
           <dd>{formatDateTime(incident.detectedAt)}</dd>
         </div>
       </dl>
 
       <div className="metric-section">
-        <h3>Metric snapshots</h3>
+        <h3>측정 지표</h3>
         {incident.metricSnapshots.length === 0 ? (
-          <div className="message">No metric snapshots recorded.</div>
+          <div className="message">저장된 측정 지표가 없습니다.</div>
         ) : (
           <div className="metric-list">
             {incident.metricSnapshots.map((metric) => (
@@ -471,15 +471,15 @@ function IncidentDetailView({
                 </div>
                 <dl>
                   <div>
-                    <dt>Baseline</dt>
+                    <dt>정상 기준</dt>
                     <dd>{formatNumber(metric.baselineValue)}</dd>
                   </div>
                   <div>
-                    <dt>Current</dt>
+                    <dt>현재 값</dt>
                     <dd>{formatNumber(metric.currentValue)}</dd>
                   </div>
                   <div>
-                    <dt>Change</dt>
+                    <dt>변화율</dt>
                     <dd>{metric.changeRate === null ? '-' : `${formatNumber(metric.changeRate)}%`}</dd>
                   </div>
                 </dl>
@@ -492,24 +492,24 @@ function IncidentDetailView({
       <div className="analysis-section">
         <div className="section-heading">
           <div>
-            <h3>AI analysis</h3>
-            <p>Mock analysis result based on bounded incident context</p>
+            <h3>AI 분석</h3>
+            <p>제한된 인시던트 컨텍스트를 기반으로 생성한 분석 결과입니다.</p>
           </div>
           <button type="button" onClick={onRunAnalysis} disabled={analyzing}>
-            {analyzing ? 'Analyzing' : 'Run Analysis'}
+            {analyzing ? '분석 중' : 'AI 분석 실행'}
           </button>
         </div>
 
         {analysisErrorMessage ? <div className="message error">{analysisErrorMessage}</div> : null}
-        {!analysis ? <div className="message">No analysis stored yet. Run analysis to generate candidates and SQL.</div> : null}
+        {!analysis ? <div className="message">저장된 분석 결과가 없습니다. AI 분석을 실행해 원인 후보와 검증 SQL을 생성해주세요.</div> : null}
         {analysis ? <AnalysisView analysis={analysis} /> : null}
       </div>
 
       <div className="report-section">
         <div className="section-heading">
           <div>
-            <h3>Reports</h3>
-            <p>Developer and business versions from the stored analysis</p>
+            <h3>리포트</h3>
+            <p>저장된 분석 결과를 개발자용과 업무 담당자용으로 변환합니다.</p>
           </div>
           <div className="report-actions">
             <button
@@ -518,7 +518,7 @@ function IncidentDetailView({
               onClick={() => onGenerateReport('DEVELOPER')}
               type="button"
             >
-              {generatingReport === 'DEVELOPER' ? 'Generating' : 'Developer'}
+              {generatingReport === 'DEVELOPER' ? '생성 중' : '개발자용'}
             </button>
             <button
               className="secondary-button"
@@ -526,12 +526,12 @@ function IncidentDetailView({
               onClick={() => onGenerateReport('BUSINESS')}
               type="button"
             >
-              {generatingReport === 'BUSINESS' ? 'Generating' : 'Business'}
+              {generatingReport === 'BUSINESS' ? '생성 중' : '업무 담당자용'}
             </button>
           </div>
         </div>
 
-        <div className="report-tabs" role="tablist" aria-label="Report type">
+        <div className="report-tabs" role="tablist" aria-label="리포트 유형">
           {(['DEVELOPER', 'BUSINESS'] as ReportType[]).map((reportType) => (
             <button
               className={selectedReportType === reportType ? 'selected' : ''}
@@ -539,7 +539,7 @@ function IncidentDetailView({
               onClick={() => setSelectedReportType(reportType)}
               type="button"
             >
-              {reportType}
+              {formatReportType(reportType)}
             </button>
           ))}
         </div>
@@ -553,7 +553,7 @@ function IncidentDetailView({
             <pre>{selectedReport.content}</pre>
           </article>
         ) : (
-          <div className="message">No {selectedReportType.toLowerCase()} report stored yet.</div>
+          <div className="message">저장된 {formatReportType(selectedReportType)} 리포트가 없습니다.</div>
         )}
       </div>
     </div>
@@ -565,42 +565,42 @@ function AnalysisView({ analysis }: { analysis: IncidentAnalysis }) {
     <div className="analysis-content">
       <dl className="detail-grid">
         <div>
-          <dt>Analyzed</dt>
+          <dt>분석 시각</dt>
           <dd>{formatDateTime(analysis.analyzedAt)}</dd>
         </div>
         <div>
-          <dt>Mode</dt>
-          <dd>{analysis.mock ? 'MOCK' : 'LLM'}</dd>
+          <dt>분석 방식</dt>
+          <dd>{analysis.mock ? '모의 분석' : 'LLM 분석'}</dd>
         </div>
         <div>
-          <dt>Summary</dt>
+          <dt>요약</dt>
           <dd>{analysis.summary}</dd>
         </div>
         <div>
-          <dt>Impact</dt>
+          <dt>영향 범위</dt>
           <dd>{analysis.impactScope}</dd>
         </div>
       </dl>
 
       <div className="analysis-list">
-        <h4>Suspected causes</h4>
+        <h4>원인 후보</h4>
         {analysis.suspectedCauses.map((cause) => (
           <article key={`${cause.rank}-${cause.cause}`}>
             <strong>
               #{cause.rank} {cause.cause}
             </strong>
             <p>{cause.reason}</p>
-            <span>Confidence {formatNumber(cause.confidence)}</span>
+            <span>신뢰도 {formatNumber(cause.confidence)}</span>
           </article>
         ))}
       </div>
 
       <div className="analysis-list">
-        <h4>Verification SQL</h4>
+        <h4>검증 SQL</h4>
         {analysis.verificationSql.map((sql) => (
           <article key={sql.title}>
             <strong>
-              {sql.title} / {sql.safe ? 'SAFE' : 'UNSAFE'}
+              {sql.title} / {sql.safe ? '안전' : '주의 필요'}
             </strong>
             <p>{sql.purpose}</p>
             <span>{sql.safetyMessage}</span>
@@ -610,7 +610,7 @@ function AnalysisView({ analysis }: { analysis: IncidentAnalysis }) {
       </div>
 
       <div className="analysis-list">
-        <h4>Additional checks</h4>
+        <h4>추가 확인 사항</h4>
         <ul>
           {analysis.additionalChecks.map((check) => (
             <li key={check}>{check}</li>
@@ -619,6 +619,37 @@ function AnalysisView({ analysis }: { analysis: IncidentAnalysis }) {
       </div>
     </div>
   )
+}
+
+function formatSeverity(severity: IncidentSeverity) {
+  const labels: Record<IncidentSeverity, string> = {
+    INFO: '정보',
+    WARNING: '주의',
+    CRITICAL: '심각',
+  }
+
+  return labels[severity]
+}
+
+function formatStatus(status: IncidentStatus) {
+  const labels: Record<IncidentStatus, string> = {
+    DETECTED: '탐지됨',
+    ANALYZING: '분석 중',
+    ANALYZED: '분석 완료',
+    RESOLVED: '해결됨',
+    DISMISSED: '제외됨',
+  }
+
+  return labels[status]
+}
+
+function formatReportType(reportType: ReportType) {
+  const labels: Record<ReportType, string> = {
+    DEVELOPER: '개발자용',
+    BUSINESS: '업무 담당자용',
+  }
+
+  return labels[reportType]
 }
 
 function formatDateTime(value: string) {

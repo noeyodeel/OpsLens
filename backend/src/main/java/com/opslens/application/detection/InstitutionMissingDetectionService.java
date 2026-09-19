@@ -92,7 +92,7 @@ public class InstitutionMissingDetectionService {
                 ThresholdType.EQUALS_ZERO
             )
             .orElseGet(() -> detectionRuleRepository.save(new DetectionRule(
-                "Institution daily data missing",
+                "기관 일별 전송 데이터 미수신",
                 TARGET_TABLE,
                 MetricType.SOURCE_COUNT,
                 ThresholdType.EQUALS_ZERO,
@@ -149,7 +149,7 @@ public class InstitutionMissingDetectionService {
             TARGET_TABLE,
             externalInstitution.getCode(),
             AnomalyType.SOURCE_MISSING,
-            "No treatment records were received from %s. Baseline average was %s.".formatted(
+            "%s 기관의 진료 전송 데이터가 수신되지 않았습니다. 정상 기준 평균은 %s건입니다.".formatted(
                 externalInstitution.getCode(),
                 metrics.baselineAverage().stripTrailingZeros().toPlainString()
             ),

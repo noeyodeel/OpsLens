@@ -94,7 +94,7 @@ public class DuplicateRecordKeyDetectionService {
                 ThresholdType.GREATER_THAN
             )
             .orElseGet(() -> detectionRuleRepository.save(new DetectionRule(
-                "Duplicate verification record key",
+                "검증 레코드 키 중복",
                 TARGET_TABLE,
                 MetricType.DUPLICATE_COUNT,
                 ThresholdType.GREATER_THAN,
@@ -139,7 +139,7 @@ public class DuplicateRecordKeyDetectionService {
             TARGET_TABLE,
             externalInstitution.getCode(),
             AnomalyType.DUPLICATE_DETECTED,
-            "Duplicate verification record key count for %s is %s.".formatted(
+            "%s 기관의 검증 레코드 키 중복 건수가 %s건 확인되었습니다.".formatted(
                 externalInstitution.getCode(),
                 metrics.duplicateCount().stripTrailingZeros().toPlainString()
             ),

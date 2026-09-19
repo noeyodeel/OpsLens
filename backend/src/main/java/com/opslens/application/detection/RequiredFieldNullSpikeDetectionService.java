@@ -94,7 +94,7 @@ public class RequiredFieldNullSpikeDetectionService {
                 ThresholdType.GREATER_THAN
             )
             .orElseGet(() -> detectionRuleRepository.save(new DetectionRule(
-                "Required field NULL ratio spike",
+                "필수 항목 NULL 비율 급증",
                 TARGET_TABLE,
                 MetricType.NULL_RATIO,
                 ThresholdType.GREATER_THAN,
@@ -140,7 +140,7 @@ public class RequiredFieldNullSpikeDetectionService {
             TARGET_TABLE,
             externalInstitution.getCode(),
             AnomalyType.NULL_SPIKE,
-            "Required field NULL ratio for %s increased to %s%%.".formatted(
+            "%s 기관의 필수 항목 NULL 비율이 %s%%로 증가했습니다.".formatted(
                 externalInstitution.getCode(),
                 metrics.currentNullRatio().stripTrailingZeros().toPlainString()
             ),

@@ -27,12 +27,12 @@ public class MockIncidentAnalysisClient implements IncidentAnalysisClient {
     private IncidentAnalysisResult sourceMissingAnalysis(AiIncidentContext context) {
         String institutionCode = institutionCode(context);
         return new IncidentAnalysisResult(
-            "No treatment records were received from %s on %s.".formatted(institutionCode, context.incident().analysisDate()),
-            "Treatment records from %s may be missing from the service database for the affected date.".formatted(institutionCode),
+            "%s 기관의 %s 진료 전송 데이터가 수신되지 않았습니다.".formatted(institutionCode, context.incident().analysisDate()),
+            "해당 일자의 %s 기관 진료 데이터가 서비스 DB에 누락되었을 가능성이 있습니다.".formatted(institutionCode),
             List.of(new SuspectedCause(
                 1,
-                "External institution transmission failure",
-                "The incident metric shows zero current records and the related ingestion log can be checked for failed or missing intake.",
+                "외부 기관 전송 실패",
+                "현재 수신 건수가 0건이며, 수신 로그에서 실패 또는 미수신 여부를 확인할 수 있습니다.",
                 new BigDecimal("0.8500")
             )),
             List.of(
@@ -40,8 +40,8 @@ public class MockIncidentAnalysisClient implements IncidentAnalysisClient {
                 treatmentRecordCountSql(context)
             ),
             List.of(
-                "Confirm whether the institution sent a file or API payload for the target batch date.",
-                "Check whether the ingestion job failed before records were written to treatment_records."
+                "대상 배치 일자에 기관이 파일 또는 API 데이터를 전송했는지 확인합니다.",
+                "treatment_records 저장 전에 수신 작업이 실패했는지 확인합니다."
             ),
             true
         );
@@ -50,12 +50,12 @@ public class MockIncidentAnalysisClient implements IncidentAnalysisClient {
     private IncidentAnalysisResult countDropAnalysis(AiIncidentContext context) {
         String institutionCode = institutionCode(context);
         return new IncidentAnalysisResult(
-            "Treatment record volume for %s dropped below the configured baseline.".formatted(institutionCode),
-            "Some records from %s may be delayed, filtered out, or not yet ingested.".formatted(institutionCode),
+            "%s 기관의 진료 전송 데이터 건수가 설정된 정상 기준보다 낮습니다.".formatted(institutionCode),
+            "%s 기관의 일부 데이터가 지연, 제외 또는 아직 적재되지 않았을 수 있습니다.".formatted(institutionCode),
             List.of(new SuspectedCause(
                 1,
-                "Partial institution data transmission",
-                "The current record count is lower than the baseline while the institution still has non-zero records.",
+                "기관 데이터 일부 전송 누락",
+                "현재 건수가 정상 기준보다 낮지만 일부 데이터는 수신되어 전체 미수신보다는 부분 누락 가능성이 높습니다.",
                 new BigDecimal("0.7800")
             )),
             List.of(
@@ -63,8 +63,8 @@ public class MockIncidentAnalysisClient implements IncidentAnalysisClient {
                 ingestionLogSql(context)
             ),
             List.of(
-                "Compare received_count and success_count with the baseline period.",
-                "Check whether only specific record statuses are missing."
+                "received_count와 success_count를 정상 기준 기간과 비교합니다.",
+                "특정 상태의 진료 전송 데이터만 누락되었는지 확인합니다."
             ),
             true
         );
@@ -73,18 +73,18 @@ public class MockIncidentAnalysisClient implements IncidentAnalysisClient {
     private IncidentAnalysisResult nullSpikeAnalysis(AiIncidentContext context) {
         String institutionCode = institutionCode(context);
         return new IncidentAnalysisResult(
-            "Required field NULL ratio increased for %s.".formatted(institutionCode),
-            "Records may be present but incomplete, which can affect downstream verification screens.",
+            "%s 기관의 필수 항목 NULL 비율이 증가했습니다.".formatted(institutionCode),
+            "데이터는 수신되었지만 일부 필수 값이 비어 있어 이후 진료내역 확인 화면에 영향을 줄 수 있습니다.",
             List.of(new SuspectedCause(
                 1,
-                "Changed upstream mapping or missing required field",
-                "The anomaly points to a field quality issue rather than a full transmission outage.",
+                "상위 시스템 매핑 변경 또는 필수 값 누락",
+                "전체 전송 장애보다는 특정 필드 품질 문제가 발생한 것으로 보입니다.",
                 new BigDecimal("0.7600")
             )),
             List.of(ingestionLogSql(context)),
             List.of(
-                "Identify which required field has the highest NULL increase.",
-                "Compare the institution payload mapping before and after the target date."
+                "NULL 증가가 가장 큰 필수 항목을 확인합니다.",
+                "대상 일자 전후의 기관 전송 데이터 매핑을 비교합니다."
             ),
             true
         );
@@ -93,18 +93,18 @@ public class MockIncidentAnalysisClient implements IncidentAnalysisClient {
     private IncidentAnalysisResult duplicateAnalysis(AiIncidentContext context) {
         String institutionCode = institutionCode(context);
         return new IncidentAnalysisResult(
-            "Duplicate verification keys were detected for %s.".formatted(institutionCode),
-            "Verification results may be counted more than once until duplicate keys are reviewed.",
+            "%s 기관의 검증 레코드 키 중복이 탐지되었습니다.".formatted(institutionCode),
+            "중복 키가 정리되기 전까지 검증 결과가 중복 집계될 수 있습니다.",
             List.of(new SuspectedCause(
                 1,
-                "Repeated upstream resend or idempotency gap",
-                "Duplicate keys usually appear when the same institution payload is reprocessed without a stable de-duplication guard.",
+                "기관 재전송 반복 또는 멱등성 처리 누락",
+                "동일한 기관 전송 데이터가 중복 제거 장치 없이 재처리될 때 중복 키가 발생할 수 있습니다.",
                 new BigDecimal("0.7400")
             )),
             List.of(verificationDuplicateSql(context)),
             List.of(
-                "Check whether the same batch was received multiple times.",
-                "Confirm that retry processing preserves the same external record key."
+                "동일 배치가 여러 번 수신되었는지 확인합니다.",
+                "재처리 시 외부 레코드 키가 동일하게 유지되는지 확인합니다."
             ),
             true
         );
@@ -112,35 +112,35 @@ public class MockIncidentAnalysisClient implements IncidentAnalysisClient {
 
     private IncidentAnalysisResult processingFailureAnalysis(AiIncidentContext context) {
         return new IncidentAnalysisResult(
-            "Processing failures increased for the affected intake batch.",
-            "Some received records may not have been persisted successfully.",
+            "영향 배치에서 처리 실패 건수가 증가했습니다.",
+            "수신된 데이터 중 일부가 정상적으로 저장되지 않았을 수 있습니다.",
             List.of(new SuspectedCause(
                 1,
-                "Batch processing failure",
-                "The ingestion evidence should be reviewed for failed_count and FAILED status.",
+                "배치 처리 실패",
+                "수신 로그의 failed_count와 FAILED 상태를 확인해야 합니다.",
                 new BigDecimal("0.7700")
             )),
             List.of(ingestionLogSql(context)),
-            List.of("Inspect backend logs around the ingestion started_at and ended_at timestamps."),
+            List.of("수신 작업의 started_at, ended_at 시각 주변 백엔드 로그를 확인합니다."),
             true
         );
     }
 
     private IncidentAnalysisResult countSpikeAnalysis(AiIncidentContext context) {
         return new IncidentAnalysisResult(
-            "Treatment record volume increased above the configured baseline.",
-            "The service may contain unexpected extra records for the target date.",
+            "진료 전송 데이터 건수가 설정된 정상 기준보다 증가했습니다.",
+            "대상 일자에 예상보다 많은 데이터가 서비스에 적재되었을 수 있습니다.",
             List.of(new SuspectedCause(
                 1,
-                "Duplicate or expanded upstream transmission",
-                "A sudden count spike can be caused by duplicate ingestion or a legitimate institution-side volume increase.",
+                "중복 수신 또는 기관 측 전송량 증가",
+                "급격한 건수 증가는 중복 적재 또는 기관 측의 실제 전송량 증가로 발생할 수 있습니다.",
                 new BigDecimal("0.6800")
             )),
             List.of(
                 treatmentRecordCountSql(context),
                 ingestionLogSql(context)
             ),
-            List.of("Compare institution-level counts with recent baseline dates."),
+            List.of("기관별 건수를 최근 정상 기준 일자와 비교합니다."),
             true
         );
     }
@@ -150,8 +150,8 @@ public class MockIncidentAnalysisClient implements IncidentAnalysisClient {
             ? ""
             : " and ei.code = '%s'".formatted(institutionCode(context));
         return new VerificationSql(
-            "Check ingestion log for the affected batch",
-            "Confirm received, success, failed counts and batch status.",
+            "영향 배치 수신 로그 확인",
+            "수신 건수, 성공 건수, 실패 건수와 배치 상태를 확인합니다.",
             """
             select ei.code as institution_code,
                    dil.target_table,
@@ -174,8 +174,8 @@ public class MockIncidentAnalysisClient implements IncidentAnalysisClient {
             ? ""
             : " and ei.code = '%s'".formatted(institutionCode(context));
         return new VerificationSql(
-            "Count treatment records by institution",
-            "Verify whether the anomaly is isolated to one institution.",
+            "기관별 진료 전송 데이터 건수 확인",
+            "이상이 특정 기관에만 발생했는지 확인합니다.",
             """
             select ei.code as institution_code,
                    count(*) as record_count
@@ -194,8 +194,8 @@ public class MockIncidentAnalysisClient implements IncidentAnalysisClient {
             ? ""
             : " and ei.code = '%s'".formatted(institutionCode(context));
         return new VerificationSql(
-            "Find duplicate verification keys",
-            "List verification record keys that appear more than once.",
+            "중복 검증 레코드 키 확인",
+            "두 번 이상 나타난 검증 레코드 키를 조회합니다.",
             """
             select ei.code as institution_code,
                    vr.external_record_key,

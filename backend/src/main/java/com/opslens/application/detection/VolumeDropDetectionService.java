@@ -97,7 +97,7 @@ public class VolumeDropDetectionService {
                 ThresholdType.BELOW_RATIO
             )
             .orElseGet(() -> detectionRuleRepository.save(new DetectionRule(
-                "Treatment records daily volume drop",
+                "진료 전송 데이터 일별 건수 급감",
                 TARGET_TABLE,
                 MetricType.ROW_COUNT,
                 ThresholdType.BELOW_RATIO,
@@ -154,7 +154,7 @@ public class VolumeDropDetectionService {
             TARGET_TABLE,
             externalInstitution.getCode(),
             AnomalyType.COUNT_DROP,
-            "Treatment record count for %s dropped from %s to %s.".formatted(
+            "%s 기관의 진료 전송 데이터 건수가 정상 기준 %s건에서 %s건으로 감소했습니다.".formatted(
                 externalInstitution.getCode(),
                 metrics.baselineAverage().stripTrailingZeros().toPlainString(),
                 metrics.currentCount().stripTrailingZeros().toPlainString()

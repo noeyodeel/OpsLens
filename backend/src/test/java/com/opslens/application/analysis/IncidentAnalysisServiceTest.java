@@ -88,7 +88,7 @@ class IncidentAnalysisServiceTest {
             .satisfies(sql -> {
                 assertThat(sql.sql()).isEqualTo("select 1");
                 assertThat(sql.safe()).isTrue();
-                assertThat(sql.safetyMessage()).isEqualTo("SELECT-only verification SQL.");
+                assertThat(sql.safetyMessage()).isEqualTo("조회 전용 검증 SQL입니다.");
             });
         assertThat(incident.getStatus().name()).isEqualTo("ANALYZED");
         verify(contextBuilderService).buildContext("INC-1");
