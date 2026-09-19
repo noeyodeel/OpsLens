@@ -75,7 +75,7 @@ public class IncidentAnalysisService {
         Incident incident = findIncident(incidentNo);
         IncidentAnalysis analysis = incidentAnalysisRepository.findFirstByIncidentOrderByAnalyzedAtDesc(incident)
             .orElseThrow(() -> new IncidentAnalysisNotFoundException(incidentNo));
-        return StoredIncidentAnalysis.from(analysis, objectMapper);
+        return toStoredAnalysis(analysis, objectMapper);
     }
 
     private Incident findIncident(String incidentNo) {
@@ -97,6 +97,10 @@ public class IncidentAnalysisService {
         } catch (JsonProcessingException exception) {
             throw new IllegalStateException("Failed to deserialize incident analysis", exception);
         }
+    }
+
+    public static StoredIncidentAnalysis toStoredAnalysis(IncidentAnalysis analysis, ObjectMapper objectMapper) {
+        return StoredIncidentAnalysis.from(analysis, objectMapper);
     }
 
     public record StoredIncidentAnalysis(

@@ -430,6 +430,17 @@ GET /api/incidents/{incidentNo}/analysis
 
 `POST /api/incidents/{incidentNo}/analyze` now stores the structured analysis result in `incident_analysis`, marks the incident as analyzed, and returns the stored analysis. The latest stored analysis can be fetched separately.
 
+Implemented report generation:
+
+```text
+POST /api/incidents/{incidentNo}/reports?type=DEVELOPER
+POST /api/incidents/{incidentNo}/reports?type=BUSINESS
+GET /api/incidents/{incidentNo}/reports?type=DEVELOPER
+GET /api/incidents/{incidentNo}/reports?type=BUSINESS
+```
+
+Developer reports include incident facts, suspected causes, safe/unsafe verification SQL status, and additional technical checks. Business reports use the same stored analysis but summarize what happened, expected business impact, current understanding, and what is being checked without exposing SQL.
+
 Implemented dashboard UI:
 
 - React dashboard fetches incident summaries from `GET /api/incidents`.

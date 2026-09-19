@@ -170,6 +170,19 @@ curl "http://localhost:8080/api/incidents/INC-20260913-SOURCE-MISSING-INST_02/an
 
 Stored verification SQL includes `safe` and `safetyMessage` fields from the SELECT-only safety validator.
 
+Generate developer or business report:
+
+```bash
+curl -X POST "http://localhost:8080/api/incidents/INC-20260913-SOURCE-MISSING-INST_02/reports?type=DEVELOPER"
+curl -X POST "http://localhost:8080/api/incidents/INC-20260913-SOURCE-MISSING-INST_02/reports?type=BUSINESS"
+```
+
+Get latest stored report:
+
+```bash
+curl "http://localhost:8080/api/incidents/INC-20260913-SOURCE-MISSING-INST_02/reports?type=DEVELOPER"
+```
+
 Frontend dashboard:
 
 - Shows incident summary counts and latest incident rows from `GET /api/incidents`.
