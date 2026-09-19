@@ -18,5 +18,32 @@ services:
       timeout: 5s
       retries: 5
 
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: opslens-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: opslens
+      RABBITMQ_DEFAULT_PASS: opslens
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  ai-worker:
+    build:
+      context: ./ai-worker
+    container_name: opslens-ai-worker
+    environment:
+      RABBITMQ_URL: amqp://opslens:opslens@rabbitmq:5672/%2F
+      OPSLENS_API_BASE_URL: http://host.docker.internal:8080
+      OPSLENS_DASHBOARD_BASE_URL: https://opslens-dashboard.vercel.app
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
 volumes:
   opslens-postgres-data:

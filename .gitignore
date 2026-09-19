@@ -25,5 +25,8 @@ Thumbs.db
 # Logs
 *.log
 
+# Local portfolio notes
+README.private.md
+
 # Docker
 docker-data/

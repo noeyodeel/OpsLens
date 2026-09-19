@@ -73,6 +73,11 @@ type IncidentReport = {
 type FilterStatus = 'ALL' | IncidentStatus
 
 const statusOptions: FilterStatus[] = ['ALL', 'DETECTED', 'ANALYZING', 'ANALYZED', 'RESOLVED', 'DISMISSED']
+const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL ?? '').replace(/\/$/, '')
+
+function apiUrl(path: string) {
+  return `${apiBaseUrl}${path}`
+}
 
 function App() {
   const [incidents, setIncidents] = useState<IncidentSummary[]>([])
@@ -98,7 +103,7 @@ function App() {
     setErrorMessage(null)
 
     try {
-      const response = await fetch(`/api/incidents${queryString}`)
+      const response = await fetch(apiUrl(`/api/incidents${queryString}`))
       if (!response.ok) {
         throw new Error(`Incident list request failed with ${response.status}`)
       }
@@ -122,7 +127,7 @@ function App() {
     setDetailErrorMessage(null)
 
     try {
-      const response = await fetch(`/api/incidents/${incidentNo}`)
+      const response = await fetch(apiUrl(`/api/incidents/${incidentNo}`))
       if (!response.ok) {
         throw new Error(`Incident detail request failed with ${response.status}`)
       }
@@ -140,7 +145,7 @@ function App() {
     setAnalysisErrorMessage(null)
 
     try {
-      const response = await fetch(`/api/incidents/${incidentNo}/analysis`)
+      const response = await fetch(apiUrl(`/api/incidents/${incidentNo}/analysis`))
       if (response.status === 404) {
         setAnalysis(null)
         return
@@ -158,7 +163,7 @@ function App() {
 
   const loadReport = async (incidentNo: string, reportType: ReportType) => {
     try {
-      const response = await fetch(`/api/incidents/${incidentNo}/reports?type=${reportType}`)
+      const response = await fetch(apiUrl(`/api/incidents/${incidentNo}/reports?type=${reportType}`))
       if (response.status === 404) {
         setReports((current) => ({ ...current, [reportType]: undefined }))
         return
@@ -181,7 +186,7 @@ function App() {
     setAnalysisErrorMessage(null)
 
     try {
-      const response = await fetch(`/api/incidents/${selectedIncidentNo}/analyze`, {
+      const response = await fetch(apiUrl(`/api/incidents/${selectedIncidentNo}/analyze`), {
         method: 'POST',
       })
       if (!response.ok) {
@@ -206,7 +211,7 @@ function App() {
     setAnalysisErrorMessage(null)
 
     try {
-      const response = await fetch(`/api/incidents/${selectedIncidentNo}/reports?type=${reportType}`, {
+      const response = await fetch(apiUrl(`/api/incidents/${selectedIncidentNo}/reports?type=${reportType}`), {
         method: 'POST',
       })
       if (!response.ok) {
@@ -227,7 +232,7 @@ function App() {
     setErrorMessage(null)
 
     try {
-      const response = await fetch('/api/incidents/detect', {
+      const response = await fetch(apiUrl('/api/incidents/detect'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -277,7 +282,7 @@ function App() {
       <section className="top-bar">
         <div>
           <p className="eyebrow">OpsLens MVP</p>
-          <h1>기관 전송 데이터 인시던트 대시보드</h1>
+          <h1>기관 데이터 전송 이상 감지 대시보드</h1>
           <p className="page-description">
             외부 기관에서 수신된 진료 전송 데이터의 이상 징후와 분석 근거를 확인합니다.
           </p>
@@ -511,37 +516,31 @@ function IncidentDetailView({
             <h3>리포트</h3>
             <p>저장된 분석 결과를 개발자용과 업무 담당자용으로 변환합니다.</p>
           </div>
+        </div>
+
+        <div className="report-controls">
+          <div className="report-tabs" role="tablist" aria-label="리포트 유형">
+            {(['DEVELOPER', 'BUSINESS'] as ReportType[]).map((reportType) => (
+              <button
+                className={selectedReportType === reportType ? 'selected' : ''}
+                key={reportType}
+                onClick={() => setSelectedReportType(reportType)}
+                type="button"
+              >
+                {formatReportType(reportType)}
+              </button>
+            ))}
+          </div>
           <div className="report-actions">
             <button
               className="secondary-button"
               disabled={generatingReport !== null || !analysis}
-              onClick={() => onGenerateReport('DEVELOPER')}
+              onClick={() => onGenerateReport(selectedReportType)}
               type="button"
             >
-              {generatingReport === 'DEVELOPER' ? '생성 중' : '개발자용'}
-            </button>
-            <button
-              className="secondary-button"
-              disabled={generatingReport !== null || !analysis}
-              onClick={() => onGenerateReport('BUSINESS')}
-              type="button"
-            >
-              {generatingReport === 'BUSINESS' ? '생성 중' : '업무 담당자용'}
+              {generatingReport === selectedReportType ? '생성 중' : '선택 리포트 생성'}
             </button>
           </div>
-        </div>
-
-        <div className="report-tabs" role="tablist" aria-label="리포트 유형">
-          {(['DEVELOPER', 'BUSINESS'] as ReportType[]).map((reportType) => (
-            <button
-              className={selectedReportType === reportType ? 'selected' : ''}
-              key={reportType}
-              onClick={() => setSelectedReportType(reportType)}
-              type="button"
-            >
-              {formatReportType(reportType)}
-            </button>
-          ))}
         </div>
 
         {selectedReport ? (

@@ -1,85 +1,115 @@
 # OpsLens
 
-OpsLens is an AI-assisted incident analysis tool for institution data intake operations.
+Slack에서 데이터 이상 징후를 요청하면 백엔드가 분석 Job을 생성하고, Queue/Worker가 비동기로 처리한 뒤 Slack과 대시보드로 결과를 제공하는 운영 자동화 프로젝트입니다.
 
-It detects abnormal transmission patterns, creates incidents, suggests possible root causes, generates safe verification SQL, and produces separate reports for developers and business users.
+```text
+Slack -> Spring Boot API -> RabbitMQ -> Python Worker -> PostgreSQL -> Slack / Dashboard
+```
 
-## Why This Project Exists
+## Demo
 
-This project is based on repeated verification work that happens when external institutions send operational records into a backend system.
+Frontend:
 
-It does not use company data or real treatment data. The MVP uses synthetic institution transmission data and intentionally injected incident scenarios.
+```text
+https://opslens-dashboard.vercel.app
+```
 
-In real backend operation work, developers often repeat the same incident investigation steps:
+> 프론트엔드는 Vercel에 배포되어 있으며, 백엔드/DB/Queue/Worker는 Docker Compose와 Cloudflare Tunnel 기반으로 시연합니다.
 
-- Check data volume changes
-- Compare current data with historical baselines
-- Find NULL spikes, duplicates, and missing institution data
-- Inspect ingestion logs and related tables
-- Write verification SQL
-- Explain the cause and status to non-developers
+## What It Does
 
-OpsLens focuses on automating the repetitive first-pass analysis while keeping final judgment and data modification in human hands.
+OpsLens는 외부 기관에서 전송되는 운영 데이터의 이상 징후를 탐지하고 분석하는 MVP입니다.
 
-## MVP Scope
+예를 들어 특정 기관의 데이터가 수신되지 않았을 때, 사용자는 Slack에서 다음처럼 요청할 수 있습니다.
 
-- Detect operational data anomalies
-- Create incidents automatically
-- Analyze incidents with an LLM using summarized context
-- Generate SELECT-only verification SQL
-- Generate developer-focused reports
-- Generate business-friendly reports
-- Run synthetic incident scenarios
-- Measure detection and analysis quality
+```text
+/opslens analyze INC-20260913-SOURCE-MISSING-INST_02
+```
+
+시스템은 분석 작업을 Queue에 넣고, Worker가 비동기로 인시던트를 분석한 뒤 Slack에 요약 결과와 대시보드 상세 링크를 응답합니다.
+
+## Key Features
+
+- 기관 전송 데이터 이상 탐지
+- 인시던트 자동 생성 및 상세 조회
+- Slack Slash Command 연동
+- RabbitMQ 기반 비동기 Job 처리
+- Python Worker 기반 분석 실행
+- 분석 결과 저장
+- 개발자용 / 업무 담당자용 리포트 생성
+- Vercel 대시보드에서 상세 확인
+
+## Architecture
+
+```text
+Slack Slash Command
+        |
+        v
+Spring Boot Backend
+        |
+        +--> PostgreSQL
+        |
+        v
+RabbitMQ Queue
+        |
+        v
+Python AI Worker
+        |
+        +--> Analysis API
+        +--> Slack response_url
+
+React Dashboard
+        |
+        v
+Spring Boot Backend
+```
 
 ## Tech Stack
 
-- Backend: Java 17, Spring Boot 3, Spring Data JPA
-- Database: PostgreSQL
-- Frontend: React
-- AI: LLM API
-- DevOps: Docker, GitHub Actions
+### Backend
 
-## Core Principle
+- Java 17
+- Spring Boot 3
+- Spring Data JPA
+- PostgreSQL
+- Flyway
+- RabbitMQ
 
-AI does not directly modify production data or make final incident decisions.
+### Frontend
 
-OpsLens assists developers by collecting context, suggesting likely causes, and drafting reports. Developers remain responsible for root-cause judgment, impact assessment, fixes, and final verification.
+- React
+- TypeScript
+- Vite
+- Vercel
 
-## Documentation
+### Worker / Infra
 
-- [MVP Design](docs/mvp-design.md)
+- Python
+- Docker Compose
+- Cloudflare Tunnel
+- Slack Slash Command
 
-## Backend Modules
+## Project Highlights
 
-- `domain.datasource`: external institutions, synthetic transmission data, ingestion logs, and repositories
-- `domain.incident`: detection rules, incidents, metric snapshots, status lifecycle, and repositories
-- `domain.scenario`: injected incident scenarios and expected root causes
-- `application.detection`: rule-based anomaly detection and incident creation
-- `application.scenario`: synthetic anomaly scenario injection
-- `application.testdata`: reproducible synthetic normal data generation
-- `application.system`: database status checks
-- `api.incident`: incident detection endpoint
-- `api.health`: backend health endpoint
-- `api.system`: database and migration status endpoint
-- `api.testdata`: synthetic data generation endpoint
+- 단순 CRUD가 아니라 Slack에서 시작되는 운영 자동화 흐름을 구현했습니다.
+- 요청 처리와 분석 실행을 Queue/Worker 구조로 분리했습니다.
+- 분석 Job 상태를 저장하여 비동기 작업의 진행 상태를 추적할 수 있게 했습니다.
+- Slack 응답과 웹 대시보드를 연결해 실제 운영 도구처럼 사용할 수 있도록 구성했습니다.
 
-## Local Development
+## Current Scope
 
-Start PostgreSQL:
+현재는 포트폴리오용 MVP로, Mock AI 분석 로직을 사용합니다. 구조상 LangGraph, VectorDB, LLM API를 Worker 내부에 추가하여 더 고도화된 AI 분석 파이프라인으로 확장할 수 있습니다.
+
+## Run Locally
 
 ```bash
 docker compose up -d
 ```
 
-Run the backend:
-
 ```bash
 cd backend
 ./mvnw spring-boot:run
 ```
-
-Run the frontend:
 
 ```bash
 cd frontend
@@ -87,106 +117,30 @@ npm install
 npm run dev
 ```
 
-Health check:
+Backend:
 
-```bash
-curl http://localhost:8080/api/health
+```text
+http://localhost:8080
 ```
 
-Database and migration check:
+Frontend:
 
-```bash
-curl http://localhost:8080/api/system/database
+```text
+http://localhost:5173
 ```
 
-The database check reads the `app_metadata` table created by Flyway. Start Docker Desktop before running `docker compose up -d`.
+## Test
 
-Generate normal synthetic data:
-
-```bash
-curl -X POST http://localhost:8080/api/test-data/generate \
-  -H "Content-Type: application/json" \
-  -d '{"days":8,"institutionCount":3,"subjectsPerInstitution":20,"recordsPerInstitutionPerDay":40,"seed":20260913,"baseDate":"2026-09-13"}'
-```
-
-List supported scenarios:
+Backend:
 
 ```bash
-curl http://localhost:8080/api/scenarios
+cd backend
+./mvnw test
 ```
 
-Inject a scenario:
+Frontend:
 
 ```bash
-curl -X POST http://localhost:8080/api/scenarios/inject \
-  -H "Content-Type: application/json" \
-  -d '{"scenarioType":"TREATMENT_RECORD_VOLUME_DROP","targetInstitutionCode":"INST_02","targetDate":"2026-09-13"}'
+cd frontend
+npm run build
 ```
-
-Run anomaly detection:
-
-```bash
-curl -X POST http://localhost:8080/api/incidents/detect \
-  -H "Content-Type: application/json" \
-  -d '{"targetDate":"2026-09-13"}'
-```
-
-The detection endpoint currently runs:
-
-- `VOLUME_DROP`: institution-level treatment record volume drop detection.
-- `REQUIRED_FIELD_NULL_SPIKE`: institution-level required field NULL ratio detection.
-- `DUPLICATE_RECORD_KEY`: institution-level duplicate verification record key detection.
-- `INSTITUTION_DATA_MISSING`: institution-level missing treatment record transmission detection.
-
-List detected incidents:
-
-```bash
-curl "http://localhost:8080/api/incidents?status=DETECTED&from=2026-09-14&to=2026-09-14"
-```
-
-Get incident detail:
-
-```bash
-curl "http://localhost:8080/api/incidents/INC-20260913-SOURCE-MISSING-INST_02"
-```
-
-Build AI analysis context:
-
-```bash
-curl "http://localhost:8080/api/incidents/INC-20260913-SOURCE-MISSING-INST_02/ai-context"
-```
-
-Run mock AI analysis:
-
-```bash
-curl -X POST "http://localhost:8080/api/incidents/INC-20260913-SOURCE-MISSING-INST_02/analyze"
-```
-
-Get latest stored analysis:
-
-```bash
-curl "http://localhost:8080/api/incidents/INC-20260913-SOURCE-MISSING-INST_02/analysis"
-```
-
-Stored verification SQL includes `safe` and `safetyMessage` fields from the SELECT-only safety validator.
-
-Generate developer or business report:
-
-```bash
-curl -X POST "http://localhost:8080/api/incidents/INC-20260913-SOURCE-MISSING-INST_02/reports?type=DEVELOPER"
-curl -X POST "http://localhost:8080/api/incidents/INC-20260913-SOURCE-MISSING-INST_02/reports?type=BUSINESS"
-```
-
-Get latest stored report:
-
-```bash
-curl "http://localhost:8080/api/incidents/INC-20260913-SOURCE-MISSING-INST_02/reports?type=DEVELOPER"
-```
-
-Frontend dashboard:
-
-- Shows incident summary counts and latest incident rows from `GET /api/incidents`.
-- Lets users select an incident and inspect detail fields plus metric snapshots from `GET /api/incidents/{incidentNo}`.
-- Runs MVP detection through `POST /api/incidents/detect`.
-- Runs mock AI analysis and displays suspected causes, safe verification SQL, additional checks, and generated reports.
-- Uses the Vite `/api` proxy to reach the local Spring Boot backend during development.
