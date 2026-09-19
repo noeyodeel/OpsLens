@@ -447,6 +447,7 @@ Implemented dashboard UI:
 - Users can filter by incident status.
 - Users can select an incident and view its detail fields and metric snapshots from `GET /api/incidents/{incidentNo}`.
 - Users can trigger detection from the dashboard through `POST /api/incidents/detect`.
+- Users can run analysis, inspect suspected causes and safe verification SQL, and generate/view developer or business reports.
 - The visual style is intentionally simple and operations-focused so the MVP emphasizes detection and analysis flow rather than decorative UI.
 
 ## 13. MVP Evaluation

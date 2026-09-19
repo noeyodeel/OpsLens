@@ -188,4 +188,5 @@ Frontend dashboard:
 - Shows incident summary counts and latest incident rows from `GET /api/incidents`.
 - Lets users select an incident and inspect detail fields plus metric snapshots from `GET /api/incidents/{incidentNo}`.
 - Runs MVP detection through `POST /api/incidents/detect`.
+- Runs mock AI analysis and displays suspected causes, safe verification SQL, additional checks, and generated reports.
 - Uses the Vite `/api` proxy to reach the local Spring Boot backend during development.

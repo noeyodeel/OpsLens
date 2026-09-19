@@ -31,6 +31,45 @@ type IncidentDetail = IncidentSummary & {
   metricSnapshots: MetricSnapshot[]
 }
 
+type SuspectedCause = {
+  rank: number
+  cause: string
+  reason: string
+  confidence: number
+}
+
+type VerificationSql = {
+  title: string
+  purpose: string
+  sql: string
+  safe: boolean
+  safetyMessage: string
+}
+
+type IncidentAnalysis = {
+  id: number
+  incidentNo: string
+  summary: string
+  impactScope: string
+  suspectedCauses: SuspectedCause[]
+  verificationSql: VerificationSql[]
+  additionalChecks: string[]
+  mock: boolean
+  analyzedAt: string
+}
+
+type ReportType = 'DEVELOPER' | 'BUSINESS'
+
+type IncidentReport = {
+  id: number
+  incidentNo: string
+  analysisId: number
+  reportType: ReportType
+  title: string
+  content: string
+  generatedAt: string
+}
+
 type FilterStatus = 'ALL' | IncidentStatus
 
 const statusOptions: FilterStatus[] = ['ALL', 'DETECTED', 'ANALYZING', 'ANALYZED', 'RESOLVED', 'DISMISSED']
@@ -43,8 +82,14 @@ function App() {
   const [loading, setLoading] = useState(true)
   const [detailLoading, setDetailLoading] = useState(false)
   const [detecting, setDetecting] = useState(false)
+  const [analyzing, setAnalyzing] = useState(false)
+  const [generatingReport, setGeneratingReport] = useState<ReportType | null>(null)
+  const [analysis, setAnalysis] = useState<IncidentAnalysis | null>(null)
+  const [reports, setReports] = useState<Partial<Record<ReportType, IncidentReport>>>({})
+  const [selectedReportType, setSelectedReportType] = useState<ReportType>('DEVELOPER')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [detailErrorMessage, setDetailErrorMessage] = useState<string | null>(null)
+  const [analysisErrorMessage, setAnalysisErrorMessage] = useState<string | null>(null)
 
   const queryString = selectedStatus === 'ALL' ? '' : `?status=${selectedStatus}`
 
@@ -91,6 +136,92 @@ function App() {
     }
   }
 
+  const loadAnalysis = async (incidentNo: string) => {
+    setAnalysisErrorMessage(null)
+
+    try {
+      const response = await fetch(`/api/incidents/${incidentNo}/analysis`)
+      if (response.status === 404) {
+        setAnalysis(null)
+        return
+      }
+      if (!response.ok) {
+        throw new Error(`Analysis request failed with ${response.status}`)
+      }
+      const data = (await response.json()) as IncidentAnalysis
+      setAnalysis(data)
+    } catch {
+      setAnalysis(null)
+      setAnalysisErrorMessage('Could not load analysis result.')
+    }
+  }
+
+  const loadReport = async (incidentNo: string, reportType: ReportType) => {
+    try {
+      const response = await fetch(`/api/incidents/${incidentNo}/reports?type=${reportType}`)
+      if (response.status === 404) {
+        setReports((current) => ({ ...current, [reportType]: undefined }))
+        return
+      }
+      if (!response.ok) {
+        throw new Error(`Report request failed with ${response.status}`)
+      }
+      const data = (await response.json()) as IncidentReport
+      setReports((current) => ({ ...current, [reportType]: data }))
+    } catch {
+      setAnalysisErrorMessage(`Could not load ${reportType.toLowerCase()} report.`)
+    }
+  }
+
+  const runAnalysis = async () => {
+    if (!selectedIncidentNo) {
+      return
+    }
+    setAnalyzing(true)
+    setAnalysisErrorMessage(null)
+
+    try {
+      const response = await fetch(`/api/incidents/${selectedIncidentNo}/analyze`, {
+        method: 'POST',
+      })
+      if (!response.ok) {
+        throw new Error(`Analyze request failed with ${response.status}`)
+      }
+      const data = (await response.json()) as IncidentAnalysis
+      setAnalysis(data)
+      await loadIncidents()
+      await loadIncidentDetail(selectedIncidentNo)
+    } catch {
+      setAnalysisErrorMessage('Could not run AI analysis. Check that an incident is selected and backend is running.')
+    } finally {
+      setAnalyzing(false)
+    }
+  }
+
+  const generateReport = async (reportType: ReportType) => {
+    if (!selectedIncidentNo) {
+      return
+    }
+    setGeneratingReport(reportType)
+    setAnalysisErrorMessage(null)
+
+    try {
+      const response = await fetch(`/api/incidents/${selectedIncidentNo}/reports?type=${reportType}`, {
+        method: 'POST',
+      })
+      if (!response.ok) {
+        throw new Error(`Report generation failed with ${response.status}`)
+      }
+      const data = (await response.json()) as IncidentReport
+      setReports((current) => ({ ...current, [reportType]: data }))
+      setSelectedReportType(reportType)
+    } catch {
+      setAnalysisErrorMessage('Could not generate report. Run analysis before generating reports.')
+    } finally {
+      setGeneratingReport(null)
+    }
+  }
+
   const runDetection = async () => {
     setDetecting(true)
     setErrorMessage(null)
@@ -121,8 +252,15 @@ function App() {
   useEffect(() => {
     if (selectedIncidentNo) {
       void loadIncidentDetail(selectedIncidentNo)
+      setAnalysis(null)
+      setReports({})
+      void loadAnalysis(selectedIncidentNo)
+      void loadReport(selectedIncidentNo, 'DEVELOPER')
+      void loadReport(selectedIncidentNo, 'BUSINESS')
     } else {
       setIncidentDetail(null)
+      setAnalysis(null)
+      setReports({})
     }
   }, [selectedIncidentNo])
 
@@ -235,14 +373,53 @@ function App() {
             <div className="message">Select an incident to view detail.</div>
           ) : null}
 
-          {!detailLoading && incidentDetail ? <IncidentDetailView incident={incidentDetail} /> : null}
+          {!detailLoading && incidentDetail ? (
+            <IncidentDetailView
+              analysis={analysis}
+              analysisErrorMessage={analysisErrorMessage}
+              analyzing={analyzing}
+              generatingReport={generatingReport}
+              incident={incidentDetail}
+              onGenerateReport={generateReport}
+              onRunAnalysis={runAnalysis}
+              reports={reports}
+              selectedReportType={selectedReportType}
+              setSelectedReportType={setSelectedReportType}
+            />
+          ) : null}
         </section>
       </section>
     </main>
   )
 }
 
-function IncidentDetailView({ incident }: { incident: IncidentDetail }) {
+type IncidentDetailViewProps = {
+  analysis: IncidentAnalysis | null
+  analysisErrorMessage: string | null
+  analyzing: boolean
+  generatingReport: ReportType | null
+  incident: IncidentDetail
+  onGenerateReport: (reportType: ReportType) => void
+  onRunAnalysis: () => void
+  reports: Partial<Record<ReportType, IncidentReport>>
+  selectedReportType: ReportType
+  setSelectedReportType: (reportType: ReportType) => void
+}
+
+function IncidentDetailView({
+  analysis,
+  analysisErrorMessage,
+  analyzing,
+  generatingReport,
+  incident,
+  onGenerateReport,
+  onRunAnalysis,
+  reports,
+  selectedReportType,
+  setSelectedReportType,
+}: IncidentDetailViewProps) {
+  const selectedReport = reports[selectedReportType] ?? null
+
   return (
     <div className="detail-content">
       <div className="detail-title-row">
@@ -310,6 +487,135 @@ function IncidentDetailView({ incident }: { incident: IncidentDetail }) {
             ))}
           </div>
         )}
+      </div>
+
+      <div className="analysis-section">
+        <div className="section-heading">
+          <div>
+            <h3>AI analysis</h3>
+            <p>Mock analysis result based on bounded incident context</p>
+          </div>
+          <button type="button" onClick={onRunAnalysis} disabled={analyzing}>
+            {analyzing ? 'Analyzing' : 'Run Analysis'}
+          </button>
+        </div>
+
+        {analysisErrorMessage ? <div className="message error">{analysisErrorMessage}</div> : null}
+        {!analysis ? <div className="message">No analysis stored yet. Run analysis to generate candidates and SQL.</div> : null}
+        {analysis ? <AnalysisView analysis={analysis} /> : null}
+      </div>
+
+      <div className="report-section">
+        <div className="section-heading">
+          <div>
+            <h3>Reports</h3>
+            <p>Developer and business versions from the stored analysis</p>
+          </div>
+          <div className="report-actions">
+            <button
+              className="secondary-button"
+              disabled={generatingReport !== null || !analysis}
+              onClick={() => onGenerateReport('DEVELOPER')}
+              type="button"
+            >
+              {generatingReport === 'DEVELOPER' ? 'Generating' : 'Developer'}
+            </button>
+            <button
+              className="secondary-button"
+              disabled={generatingReport !== null || !analysis}
+              onClick={() => onGenerateReport('BUSINESS')}
+              type="button"
+            >
+              {generatingReport === 'BUSINESS' ? 'Generating' : 'Business'}
+            </button>
+          </div>
+        </div>
+
+        <div className="report-tabs" role="tablist" aria-label="Report type">
+          {(['DEVELOPER', 'BUSINESS'] as ReportType[]).map((reportType) => (
+            <button
+              className={selectedReportType === reportType ? 'selected' : ''}
+              key={reportType}
+              onClick={() => setSelectedReportType(reportType)}
+              type="button"
+            >
+              {reportType}
+            </button>
+          ))}
+        </div>
+
+        {selectedReport ? (
+          <article className="report-view">
+            <div>
+              <strong>{selectedReport.title}</strong>
+              <time dateTime={selectedReport.generatedAt}>{formatDateTime(selectedReport.generatedAt)}</time>
+            </div>
+            <pre>{selectedReport.content}</pre>
+          </article>
+        ) : (
+          <div className="message">No {selectedReportType.toLowerCase()} report stored yet.</div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function AnalysisView({ analysis }: { analysis: IncidentAnalysis }) {
+  return (
+    <div className="analysis-content">
+      <dl className="detail-grid">
+        <div>
+          <dt>Analyzed</dt>
+          <dd>{formatDateTime(analysis.analyzedAt)}</dd>
+        </div>
+        <div>
+          <dt>Mode</dt>
+          <dd>{analysis.mock ? 'MOCK' : 'LLM'}</dd>
+        </div>
+        <div>
+          <dt>Summary</dt>
+          <dd>{analysis.summary}</dd>
+        </div>
+        <div>
+          <dt>Impact</dt>
+          <dd>{analysis.impactScope}</dd>
+        </div>
+      </dl>
+
+      <div className="analysis-list">
+        <h4>Suspected causes</h4>
+        {analysis.suspectedCauses.map((cause) => (
+          <article key={`${cause.rank}-${cause.cause}`}>
+            <strong>
+              #{cause.rank} {cause.cause}
+            </strong>
+            <p>{cause.reason}</p>
+            <span>Confidence {formatNumber(cause.confidence)}</span>
+          </article>
+        ))}
+      </div>
+
+      <div className="analysis-list">
+        <h4>Verification SQL</h4>
+        {analysis.verificationSql.map((sql) => (
+          <article key={sql.title}>
+            <strong>
+              {sql.title} / {sql.safe ? 'SAFE' : 'UNSAFE'}
+            </strong>
+            <p>{sql.purpose}</p>
+            <span>{sql.safetyMessage}</span>
+            <pre>{sql.sql}</pre>
+          </article>
+        ))}
+      </div>
+
+      <div className="analysis-list">
+        <h4>Additional checks</h4>
+        <ul>
+          {analysis.additionalChecks.map((check) => (
+            <li key={check}>{check}</li>
+          ))}
+        </ul>
       </div>
     </div>
   )
